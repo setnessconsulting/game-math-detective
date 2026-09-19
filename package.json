@@ -1,0 +1,43 @@
+{
+  "name": "game-math-detective",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests vite.config.ts vitest.config.ts playwright.config.ts playwright.accessibility.config.ts playwright.phaser.config.ts",
+    "test": "vitest run",
+    "test:e2e": "npm run build && playwright test -c playwright.config.ts",
+    "test:a11y": "playwright test -c playwright.accessibility.config.ts",
+    "test:phaser-render": "playwright test -c playwright.phaser.config.ts",
+    "verify:build-base": "node scripts/verify-build-base.mjs",
+    "verify:boundary": "node scripts/verify-boundary.mjs",
+    "verify": "npm run typecheck && npm run lint && npm test && npm run verify:boundary && npm run verify:build-base && npm run test:phaser-render && npm run test:a11y && npm run test:e2e"
+  },
+  "dependencies": {
+    "phaser": "4.2.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@eslint/js": "9.39.5",
+    "@playwright/test": "1.63.0",
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.1.1",
+    "eslint": "9.39.1",
+    "globals": "17.12.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.0",
+    "vite": "8.3.0",
+    "vitest": "4.1.11"
+  }
+}
