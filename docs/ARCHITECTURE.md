@@ -21,6 +21,8 @@ EngineState owns case/session truth. SceneModel is a read-only presentation proj
 
 Animation completion and duplicate renderer callbacks cannot advance the engine without a validated intent. A remount starts from the projected authoritative state.
 
+The complete standalone contracts are [SCENE_CONTRACT.md](SCENE_CONTRACT.md) for GAME-137 and [PHASER_ADAPTER.md](PHASER_ADAPTER.md) for GAME-138.
+
 ## Determinism
 
 Generation receives an explicit seed, tier, and mode. Randomness is injected through the migrated Mulberry32 implementation. Reducer timestamps are injectable in tests. The browser shell supplies wall-clock time only at the host boundary.
