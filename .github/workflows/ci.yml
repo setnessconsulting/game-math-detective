@@ -1,0 +1,43 @@
+name: standalone verification
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+      - name: Install from lockfile
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Deterministic and privacy tests
+        run: npm test
+      - name: Standalone boundary guard
+        run: npm run verify:boundary
+      - name: Non-root build
+        run: npm run verify:build-base
+      - name: Real Phaser browser render
+        run: npm run test:phaser-render
+      - name: Accessibility browser lane
+        run: npm run test:a11y
+      - name: Browser E2E
+        run: npm run test:e2e

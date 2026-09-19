@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Math Detective — prototype (design evidence)</title>
+<style>
+  :root{
+    --ink:#1c2333; --paper:#f7f4ec; --card:#ffffff; --line:#c9c2b2;
+    --accent:#2456a6; --accent2:#b35a1f; --ok:#1d7a3e; --no:#a33125;
+    --focus:0 0 0 3px #2456a6, 0 0 0 6px #ffffff;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.45 system-ui,"Segoe UI",sans-serif;color:var(--ink);background:var(--paper)}
+  .app{max-width:760px;margin:0 auto;padding:16px;min-height:100vh;display:flex;flex-direction:column}
+  header{display:flex;align-items:center;gap:10px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  header h1{font-size:18px;margin:0}
+  .spacer{flex:1}
+  button{font:inherit;color:var(--ink);cursor:pointer;border-radius:var(--radius)}
+  button:focus-visible,a:focus-visible{outline:none;box-shadow:var(--focus)}
+  .btn{border:2px solid var(--ink);background:var(--card);padding:12px 18px;min-height:48px;min-width:48px}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
+  .btn.small{padding:8px 12px;min-height:44px}
+  .btn[aria-disabled="true"]{opacity:.4}
+  .screen{display:none;margin-top:14px}
+  .screen.on{display:block}
+  .casefile{display:flex;gap:8px;flex-wrap:wrap;min-height:34px;padding:8px;background:var(--card);
+    border:2px dashed var(--line);border-radius:var(--radius);margin-top:10px}
+  .chip{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--accent);color:var(--accent);
+    background:#eef3fc;border-radius:999px;padding:6px 12px;font-weight:600;font-size:14px}
+  .chip .g{font-weight:900}
+  .suspects{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .scard{flex:1 1 150px;background:var(--card);border:2px solid var(--line);border-radius:var(--radius);
+    padding:10px;text-align:center;position:relative}
+  .scard .avatar{width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;
+    font-size:26px;font-weight:800;line-height:56px;margin:0 auto}
+  .scard h3{margin:8px 0 2px;font-size:17px}
+  .attr{font-size:13.5px;border-top:1px solid var(--line);padding:5px 0;text-align:left}
+  .attr:first-of-type{border-top:0}
+  .stamp{display:inline-block;margin-top:6px;font-weight:800;font-size:13px;padding:3px 10px;
+    border-radius:999px;border:2px solid}
+  .stamp.alive{color:var(--ok);border-color:var(--ok)} .stamp.elim{color:var(--no);border-color:var(--no)}
+  .elim-banner::after{content:"ELIMINATED";position:absolute;inset:auto 8px 8px 8px;background:#000c;color:#fff;
+    font-size:12px;font-weight:800;border-radius:6px;padding:2px}
+  .goalbubble{display:flex;gap:10px;align-items:center;background:#fff7e8;border:2px solid var(--accent2);
+    border-radius:var(--radius);padding:10px 12px;font-weight:600}
+  .stationbox{background:var(--card);border:2px solid var(--line);border-radius:var(--radius);padding:14px;margin-top:10px}
+  /* ruler presentation */
+  .ruler{display:flex;align-items:flex-end;height:120px;margin:10px 0;user-select:none}
+  .rticks{position:relative;width:70%;height:100%;border-right:3px solid var(--ink);border-bottom:3px solid var(--ink)}
+  .rtick{position:absolute;left:0;width:22px;border-top:2px solid var(--ink)}
+  .rtick.major{width:34px;border-top-width:3px}
+  .rlabel{position:absolute;left:40px;transform:translateY(-50%);font-size:13px;font-weight:600}
+  .shelfbar{width:30%;height:100%;display:flex;flex-direction:column;justify-content:flex-start}
+  .shelf{height:52%;background:repeating-linear-gradient(45deg,#d9cfb8 0 8px,#efe7d4 8px 16px);
+    border:3px solid var(--ink);border-bottom:6px solid var(--ink);position:relative}
+  .shelftag{position:absolute;top:-30px;left:0;right:0;text-align:center;font-weight:800;font-size:14px}
+  /* clock pair */
+  .clocks{display:flex;gap:18px;justify-content:center;margin:12px 0;flex-wrap:wrap}
+  .clock{text-align:center}
+  .face{width:130px;height:130px;border:4px solid var(--ink);border-radius:50%;position:relative;background:#fff}
+  .hand{position:absolute;left:50%;bottom:50%;transform-origin:bottom center;background:var(--ink);border-radius:3px}
+  .hand.hour{width:7px;height:32px;margin-left:-3.5px}
+  .hand.min{width:5px;height:52px;margin-left:-2.5px;background:var(--accent2)}
+  .clock p{margin:6px 0 0;font-size:14px;font-weight:600}
+  /* answer area */
+  .answerrow{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+  .entry{font-size:28px;font-weight:800;min-width:110px;text-align:right;border-bottom:3px solid var(--ink);
+    padding:2px 8px;background:#fff}
+  .keypad{display:grid;grid-template-columns:repeat(3,64px);gap:8px}
+  .keypad button,.kp-wide{min-height:48px;border:2px solid var(--ink);background:#fff;font-size:20px;font-weight:700}
+  .feedback{margin-top:10px;padding:10px 12px;border-radius:var(--radius);border:2px solid;display:none;font-weight:600}
+  .feedback.ok{border-color:var(--ok);color:var(--ok);display:block;background:#e9f5ee}
+  .feedback.no{border-color:var(--no);color:var(--no);display:block;background:#faeceb}
+  .dots{display:flex;gap:6px;justify-content:center;margin-top:12px}
+  .dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--ink);background:transparent}
+  .dot.done{background:var(--ink)}
+  /* hint sheet */
+  .sheet{position:fixed;inset:auto 0 0 0;background:var(--card);border-top:3px solid var(--ink);
+    padding:16px;max-width:760px;margin:0 auto;display:none}
+  .sheet.on{display:block}
+  .hintline{display:flex;gap:10px;align-items:flex-start;padding:10px;border:2px solid var(--line);
+    border-radius:var(--radius);margin-top:8px}
+  .hinttag{font-size:12px;font-weight:800;text-transform:uppercase;background:var(--paper);
+    border:1px solid var(--line);border-radius:6px;padding:2px 8px;white-space:nowrap}
+  /* checkpoint / board */
+  .boardgrid{display:grid;grid-template-columns:1fr repeat(4,72px);gap:6px;margin-top:12px}
+  .bg-head{font-weight:700;text-align:center;font-size:14px}
+  .bg-rowlabel{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+  .cell{min-height:52px;border:2px solid var(--line);border-radius:10px;background:#fff;font-size:20px;font-weight:900}
+  .cell.x{color:var(--no);border-color:var(--no)} .cell.ok{color:var(--ok);border-color:var(--ok)}
+  @media(max-width:700px){.boardgrid{grid-template-columns:1fr}.cell{min-height:48px}}
+  .verdict{ text-align:center;padding:20px }
+  .bigstamp{display:inline-block;font-size:22px;font-weight:900;border:3px solid var(--ok);color:var(--ok);
+    padding:8px 20px;border-radius:var(--radius);transform:rotate(-4deg)}
+  .contrast-view{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+  .summary-cards{display:grid;gap:10px;margin-top:12px}
+  .sumcard{background:var(--card);border:2px solid var(--line);border-radius:var(--radius);padding:12px}
+  .sumnum{font-size:34px;font-weight:900}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  footer.note{margin-top:auto;padding-top:14px;font-size:12.5px;color:#5a5546}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <button class="btn small" id="homeBtn" aria-label="Back to all games">⌂ Games</button>
+    <h1>🔍 Math Detective <span class="sr">prototype</span></h1>
+    <div class="spacer"></div>
+    <button class="btn small" id="soundBtn" aria-pressed="false">🔇 Sound: off</button>
+  </header>
+
+  <!-- S1 BRIEFING -->
+  <section class="screen on" id="scr-briefing" aria-labelledby="briefTitle">
+    <h2 id="briefTitle">The Case of the Missing Trophy 🏆</h2>
+    <p>The school trophy vanished at <strong>3:40 pm</strong>. One of these four suspects took it.
+       Solve the clues to earn evidence — then name the culprit.</p>
+    <div class="suspects" id="lineup"></div>
+    <p style="margin-top:14px"><button class="btn primary" id="startBtn">Start investigating →</button></p>
+  </section>
+
+  <!-- S2 EVIDENCE -->
+  <section class="screen" id="scr-station" aria-labelledby="stationGoal">
+    <div class="goalbubble"><span aria-hidden="true">🎯</span><span id="stationGoal"></span></div>
+    <div style="text-align:right;margin-top:8px">
+      <button class="btn small" id="hintBtn">🛈 Hint</button>
+    </div>
+    <div class="stationbox" id="presentation"></div>
+    <div class="answerrow">
+      <span class="entry" id="entry" aria-live="polite"></span>
+      <div class="keypad" role="group" aria-label="number keypad"></div>
+      <button class="btn primary" id="checkBtn">Check it</button>
+    </div>
+    <div class="feedback" id="fb" role="status"></div>
+    <div class="casefile" id="casefileTop" aria-label="Case file: earned evidence"></div>
+    <div class="dots" id="dots" aria-hidden="true"></div>
+  </section>
+
+  <!-- S3 CHECKPOINT -->
+  <section class="screen" id="scr-checkpoint" aria-labelledby="cpTitle">
+    <h2 id="cpTitle">Who could still be our culprit?</h2>
+    <p>Tap a suspect to mark them <strong>ALIVE ✓</strong> or <strong>ELIMINATED ✕</strong>.</p>
+    <div class="suspects" id="cpSuspects"></div>
+    <p style="margin-top:14px"><button class="btn primary" id="cpDone">That's my hunch →</button></p>
+  </section>
+
+  <!-- S4 BOARD + S5 ACCUSE -->
+  <section class="screen" id="scr-board" aria-labelledby="boardTitle">
+    <h2 id="boardTitle">Deduction board</h2>
+    <p>Tap a square to rule a suspect out ✕ or mark a match ✓. Then name your culprit.</p>
+    <div class="boardgrid" id="boardGrid"></div>
+    <p style="margin-top:14px"><button class="btn primary" id="accuseOpen">🔍 Name your culprit</button></p>
+    <div class="sheet" id="accuseSheet" role="dialog" aria-modal="true" aria-labelledby="accuseTitle">
+      <h3 id="accuseTitle">You accuse…</h3>
+      <div id="becauseLines"></div>
+      <p><button class="btn primary" id="accuseConfirm">Confirm accusation</button>
+         <button class="btn" id="accuseCancel">Keep looking</button></p>
+    </div>
+  </section>
+
+  <!-- S6 VERDICT -->
+  <section class="screen" id="scr-verdict" aria-labelledby="verdictTitle">
+    <div class="verdict" id="verdictBody"></div>
+  </section>
+
+  <!-- S7 SUMMARY -->
+  <section class="screen" id="scr-summary" aria-labelledby="sumTitle">
+    <h2 id="sumTitle">Case file closed 📁</h2>
+    <div class="summary-cards" id="summaryCards"></div>
+    <p style="margin-top:14px">
+      <button class="btn primary" onclick="location.reload()">Play another case</button>
+      <button class="btn" onclick="alert('Prototype: hub not wired')">All games</button>
+    </p>
+  </section>
+
+  <!-- HINT SHEET -->
+  <div class="sheet" id="hintSheet" role="dialog" aria-modal="true" aria-labelledby="hintTitle">
+    <h3 id="hintTitle">🛈 Detective's notebook</h3>
+    <div id="hintList"></div>
+    <p>
+      <button class="btn primary" id="hintNext">Another hint</button>
+      <button class="btn" id="hintClose">Back to the clue</button>
+    </p>
+  </div>
+
+  <footer class="note">Throwaway prototype — design evidence for the Math Detective epic. No data saved.</footer>
+  <div class="sr" aria-live="polite" id="announcer"></div>
+</div>
+
+<script src="engine.js"></script>
+<script>
+(function(){
+  "use strict";
+  const E = window.MDEngine;
+  const $ = (id)=>document.getElementById(id);
+  const state = { phase:"briefing", evIndex:0, attempts:0, hints:[], results:[],
+                  alive:new Set(E.SUSPECTS.map(s=>s.id)), links:{}, accused:null,
+                  sound:false, firstTryNoHint:true };
+  const reduceMotion = matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------- audio (off by default; tiny cues; visual twin always present) --
+  function cue(kind){
+    if(!state.sound) return;
+    try{
+      const ctx = cue.ctx || (cue.ctx = new (window.AudioContext||window.webkitAudioContext)());
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      const f = kind==="ok"?660 : kind==="no"?220 : kind==="win"?880:330;
+      o.frequency.value=f; g.gain.value=.06;
+      o.start(); g.gain.exponentialRampToValueAtTime(.0001, ctx.currentTime+.25); o.stop(ctx.currentTime+.26);
+    }catch(e){/* audio optional */}
+  }
+  function announce(t){ $("announcer").textContent=t; }
+
+  $("soundBtn").addEventListener("click", function(){
+    state.sound=!state.sound;
+    this.setAttribute("aria-pressed", String(state.sound));
+    this.textContent = state.sound ? "🔊 Sound: on" : "🔇 Sound: off";
+  });
+
+  function show(id){
+    document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));
+    $(id).classList.add("on");
+    const f=$(id).querySelector("button"); if(f) f.focus();
+  }
+
+  // ---------- suspect card rendering ---------------------------------------
+  function suspectCard(s){
+    return `<article class="scard ${state.alive.has(s.id)?"":"elim-banner"}" data-sid="${s.id}">
+      <div class="avatar" aria-hidden="true">${s.initial}</div>
+      <h3>${s.name}</h3>
+      <div class="attr">${s.icon} Height: <strong>${s.heightCm} cm</strong></div>
+      <div class="attr">🕒 ${s.afterSchool}</div>
+      <span class="stamp ${state.alive.has(s.id)?"alive":"elim"}">${state.alive.has(s.id)?"✓ ALIVE":"✕ OUT"}</span>
+    </article>`;
+  }
+  function renderLineup(){ $("lineup").innerHTML = E.SUSPECTS.map(suspectCard).join(""); }
+
+  renderLineup();
+  $("startBtn").addEventListener("click", ()=>{ cue("tick"); openStation(0); });
+  $("homeBtn").addEventListener("click", ()=>show("scr-briefing"));
+
+  // ---------- evidence stations ----------------------------------------------
+  function chipHTML(c){ return `<span class="chip"><span class="g" aria-hidden="true">✔</span> ${c.chip}</span>`; }
+  function renderCasefile(){
+    const earned = E.EVIDENCE.slice(0,state.evIndex).map(e=>chipHTML(e.constraint));
+    $("casefileTop").innerHTML = earned.length ? earned.join("") :
+      `<span style="font-size:13px;color:#5a5546">Earned evidence appears here</span>`;
+  }
+
+  function rulerHTML(p){
+    let ticks="";
+    for(let cm=100; cm<=140; cm+=10){
+      const y=((140-cm)/40)*100;
+      ticks+=`<div class="rtick major" style="top:${y}%"><span class="rlabel" style="top:0">${cm}</span></div>`;
+      ticks+=`<div class="rtick" style="top:${y+12.5}%"></div><div class="rtick" style="top:${y+25}%"></div>`;
+    }
+    return `<p style="font-weight:700">The trophy shelf, next to a centimeter ruler:</p>
+      <div class="ruler" role="img" aria-label="Ruler from 100 to 140 centimeters. The top of the shelf lines up halfway between 120 and 140.">
+        <div class="shelfbar"><div class="shelf"><span class="shelftag">🏆 shelf top</span></div></div>
+        <div class="rticks">${ticks}</div>
+      </div>`;
+  }
+  function clockHTML(h,m,label,handCls){
+    const hourDeg=(h%12)*30+m*.5, minDeg=m*6;
+    return `<div class="clock"><div class="face" role="img"
+        aria-label="${h}:${String(m).padStart(2,"0")} — short hand at ${h}, long hand at ${m} minutes">
+        <div class="hand hour ${handCls}" style="transform:rotate(${hourDeg}deg)"></div>
+        <div class="hand min ${handCls}" style="transform:rotate(${minDeg}deg)"></div></div>
+      <p>${label}</p></div>`;
+  }
+  function clocksHTML(p){
+    return `<p style="font-weight:700">The gym security clock:</p>
+      <div class="clocks">${clockHTML(p.startH,p.startM,p.startLabel)}${clockHTML(p.endH,p.endM,p.endLabel)}</div>`;
+  }
+
+  function openStation(i){
+    state.evIndex=i; state.attempts=0; state.hints=[]; state.firstTryNoHint=true;
+    const item=E.EVIDENCE[i];
+    $("stationGoal").textContent=item.goal;
+    $("presentation").innerHTML = item.presentation.kind==="ruler" ? rulerHTML(item.presentation) : clocksHTML(item.presentation);
+    $("entry").textContent="";
+    $("fb").className="feedback"; $("fb").textContent="";
+    $("dots").innerHTML=E.EVIDENCE.map((_,k)=>`<span class="dot ${k<i?"done":""}"></span>`).join("");
+    renderKeypad(); renderCasefile(); show("scr-station");
+    announce("Clue "+(i+1)+" of "+E.EVIDENCE.length+". "+item.goal);
+  }
+
+  // keypad
+  function renderKeypad(){
+    const keys=["1","2","3","4","5","6","7","8","9","⌫","0","Go"];
+    $("checkBtn").style.display="none";
+    const kp=document.createElement("div"); kp.className="keypad"; kp.setAttribute("role","group");
+    kp.setAttribute("aria-label","number keypad");
+    keys.forEach(k=>{
+      const b=document.createElement("button");
+      b.textContent=k==="Go"?"✓":k; b.setAttribute("aria-label", k==="⌫"?"delete":k==="Go"?"submit answer":k);
+      if(k==="Go") b.classList.add("kp-wide");
+      b.addEventListener("click",()=>{
+        if(k==="⌫") $("entry").textContent=$("entry").textContent.slice(0,-1);
+        else if(k==="Go") submit();
+        else { if($("entry").textContent.length<4) $("entry").textContent+=k; }
+        cue("tick");
+      });
+      kp.appendChild(b);
+    });
+    const old=document.querySelector(".keypad"); if(old) old.replaceWith(kp);
+  }
+
+  function submit(){
+    const item=E.EVIDENCE[state.evIndex];
+    const val=parseInt($("entry").textContent,10);
+    const fb=$("fb");
+    if(isNaN(val)){ fb.className="feedback no"; fb.textContent="Type a number first."; return; }
+    state.attempts++;
+    if(val===item.answer.value){
+      const pts=E.scoreEvidence(item, state.attempts-1, state.hints);
+      state.results.push({points:pts, firstTryNoHint:state.firstTryNoHint});
+      fb.className="feedback ok";
+      fb.innerHTML=`✓ Right! Evidence earned: “${item.constraint.sentence}” (+${pts})`;
+      announce("Correct. "+item.constraint.sentence);
+      cue("ok");
+      // apply constraint -> update alive set (cause & effect)
+      const before=state.alive.size;
+      E.SUSPECTS.forEach(s=>{ if(!item.constraint.test(s)) state.alive.delete(s.id); });
+      setTimeout(()=>{
+        if(state.evIndex+1<E.EVIDENCE.length) openCheckpoint(state.evIndex+1);
+        else openBoard();
+      }, reduceMotion?900:1600);
+    }else{
+      fb.className="feedback no";
+      fb.textContent = item.presentation.kind==="ruler"
+        ? "✗ Look again at where the shelf top meets the ruler."
+        : "✗ Check both clock faces. Count minutes from the first clock to the second.";
+      if(state.attempts>=2 && !state.hints.length) autoOfferHint();
+      state.firstTryNoHint=false;
+      announce("Not yet. Try again.");
+      cue("no");
+    }
+  }
+  $("checkBtn").addEventListener("click", submit);
+
+  // ---------- hint ladder ----------------------------------------------------
+  let hintLevelShown=0, pendingItemId=null;
+  $("hintBtn").addEventListener("click", ()=>openHints());
+  function openHints(auto){
+    pendingItemId=E.EVIDENCE[state.evIndex].id;
+    hintLevelShown=Math.max(0,state.hints.length);
+    renderHints(); $("hintSheet").classList.add("on");
+    $("hintNext").focus();
+    if(auto) announce("Hint offered.");
+  }
+  function renderHints(){
+    const item=E.EVIDENCE[state.evIndex];
+    const tags=["Look again 👀","Detective's trick 💡","Try this one first ✏️","The reveal 🔎"];
+    let html="";
+    for(let l=1;l<=Math.max(hintLevelShown,0);l++){
+      if(l>4) break;
+      html+=`<div class="hintline"><span class="hinttag">${tags[l-1]}</span><span>${item.hints["l"+l]}</span></div>`;
+    }
+    $("hintList").innerHTML=html||`<p>Take your time. Hints stay here when you want them.</p>`;
+    $("hintNext").textContent = hintLevelShown>=3 ? "Show me how? (worth fewer points)" : "Another hint";
+    $("hintNext").setAttribute("aria-disabled", String(hintLevelShown>=4));
+  }
+  $("hintNext").addEventListener("click",()=>{
+    if(hintLevelShown>=4) return;
+    if(hintLevelShown===3 && !confirmOK()){ return; }
+    hintLevelShown++; state.hints.push(hintLevelShown);
+    state.firstTryNoHint=false;
+    renderHints(); cue("tick"); announce("Hint level "+hintLevelShown+" shown.");
+    function confirmOK(){ return true; } // prototype: explicit tap IS consent (L4 labeled)
+  });
+  $("hintClose").addEventListener("click",()=>{ $("hintSheet").classList.remove("on"); });
+
+  function autoOfferHint(){ openHints(true); }
+
+  // ---------- checkpoint ------------------------------------------------------
+  function openCheckpoint(nextIndex){
+    $("cpSuspects").innerHTML=E.SUSPECTS.map(suspectCard).join("");
+    $("cpSuspects").querySelectorAll(".scard").forEach(card=>{
+      card.addEventListener("click",()=>{
+        const id=card.getAttribute("data-sid");
+        // toggle is display-only here; engine truth comes from constraints
+        cue("tick");
+        card.querySelector(".stamp").scrollIntoView({block:"nearest"});
+        announce(card.querySelector(".stamp").textContent+" "+id);
+      });
+    });
+    $("cpDone").addEventListener("click",function handler(){ this.removeEventListener("click",handler); openStation(nextIndex); });
+    show("scr-checkpoint");
+    announce("Checkpoint: who could still be our culprit?");
+  }
+
+  // ---------- deduction board -------------------------------------------------
+  function openBoard(){
+    const grid=$("boardGrid");
+    let html=`<div class="bg-head" aria-hidden="true"></div>`+
+      E.SUSPECTS.map(s=>`<div class="bg-head">${s.name}<br><span class="sr">suspect</span></div>`).join("");
+    E.EVIDENCE.forEach((ev,ri)=>{
+      html+=`<div class="bg-rowlabel"><span class="g" aria-hidden="true">✔</span> ${ev.constraint.chip}</div>`;
+      E.SUSPECTS.forEach(s=>{
+        const key=s.id+"|"+ri;
+        const matches=ev.constraint.test(s);
+        html+=`<button class="cell" data-key="${key}" data-sid="${s.id}" data-ri="${ri}"
+          aria-label="${s.name}: ${ev.constraint.chip} — ${matches?"matches":"does not match"}">${matches?"":"·"}</button>`;
+      });
+    });
+    grid.innerHTML=html;
+    grid.querySelectorAll(".cell").forEach(cell=>{
+      cell.addEventListener("click",()=>{
+        const sid=cell.getAttribute("data-sid"), ri=cell.getAttribute("data-ri");
+        const cur=state.links[sid+"|"+ri];
+        const next=cur==="x"?"":"x";
+        if(next) state.links[sid+"|"+ri]="x"; else delete state.links[sid+"|"+ri];
+        cell.className="cell"+(next?" x":"");
+        cell.textContent = next==="x" ? "✕" : (E.EVIDENCE[ri].constraint.test(E.SUSPECTS.find(s=>s.id===sid))?"":"·");
+        cue("tick");
+      });
+    });
+    renderCasefile(); show("scr-board");
+    announce("Deduction board ready.");
+  }
+
+  // ---------- accusation ------------------------------------------------------
+  let accusedId=null;
+  $("accuseOpen").addEventListener("click",()=>{
+    accusedId=null;
+    $("becauseLines").innerHTML=`<p>Pick a suspect below.</p>`+
+      E.SUSPECTS.map(s=>`<button class="btn" data-acc="${s.id}" style="margin:4px">👤 ${s.name}</button>`).join(" ");
+    $("becauseLines").querySelectorAll("[data-acc]").forEach(b=>{
+      b.addEventListener("click",()=>setAccused(b.getAttribute("data-acc")));
+    });
+    $("accuseSheet").classList.add("on");
+    $("accuseSheet").querySelector("button").focus();
+  });
+  $("accuseCancel").addEventListener("click",()=>$("accuseSheet").classList.remove("on"));
+  function setAccused(id){
+    accusedId=id;
+    const s=E.SUSPECTS.find(x=>x.id===id);
+    const because=E.EVIDENCE.map(ev=>{
+      const ok=ev.constraint.test(s);
+      return `<li>${ev.constraint.sentence} — <strong>${ok?"this fits them":"this does NOT fit them"}</strong></li>`;
+    }).join("");
+    $("becauseLines").innerHTML=`<p><strong>${s.name}</strong>. Because:</p><ul>${because}</ul>`;
+    announce("Accusing "+s.name);
+  }
+  $("accuseConfirm").addEventListener("click",()=>{
+    if(!accusedId) return;
+    $("accuseSheet").classList.remove("on");
+    verdict(accusedId);
+  });
+
+  // ---------- verdict & summary -----------------------------------------------
+  function verdict(id){
+    const right = id===E.CULPRIT_ID;
+    const s=E.SUSPECTS.find(x=>x.id===id);
+    let html="";
+    if(right){
+      const sum=E.summarize(state.results);
+      const badges=[ "🏅 Cracked It" , state.results.every(r=>r.firstTryNoHint)&&state.results.length?"🏅 Sharp Eye (no hints)":null ]
+        .filter(Boolean);
+      html=`<h2 id="verdictTitle">CASE CLOSED</h2>
+        <span class="bigstamp">✓ ${s.name} took the trophy</span>
+        <p>${s.name}'s height cleared the shelf and her walk passes the gym after 3:35. The chief is proud.</p>
+        <p>${badges.join(" · ")}</p>
+        <button class="btn primary" id="toSummary">See case report →</button>`;
+      cue("win");
+    }else{
+      const broken=E.EVIDENCE.filter(ev=>!ev.constraint.test(s));
+      html=`<h2 id="verdictTitle">Hmm — follow the evidence 🔍</h2>
+        <div class="contrast-view">
+          <div class="scard">${suspectCard(s)}</div>
+          <div class="scard">${broken.map(ev=>chipHTML(ev.constraint)).join("")}</div>
+        </div>
+        <p><strong>${s.name}</strong>: ${broken.map(ev=>ev.constraint.sentence.replace("culprit",s.name)).join(" But ")}</p>
+        <button class="btn primary" id="retryAccuse">Follow the evidence again</button>`;
+      announce("Not "+s.name+". Look at the contradicting evidence.");
+      cue("no");
+    }
+    $("verdictBody").innerHTML=html;
+    show("scr-verdict");
+    const btn=$("verdictBody").querySelector("button"); if(btn) btn.focus();
+    const t=$("toSummary"); if(t) t.addEventListener("click", summary);
+    const r=$("retryAccuse"); if(r) r.addEventListener("click", ()=>$("accuseOpen").click());
+  }
+
+  function summary(){
+    const sum=E.summarize(state.results);
+    const skills=E.EVIDENCE.map(e=>e.skillId).filter((v,i,a)=>a.indexOf(v)===i);
+    $("summaryCards").innerHTML=`
+      <div class="sumcard"><div class="sumnum">${sum.independenceScore}</div>
+        <strong>Independence score</strong> — share of evidence solved on your own, first try.<br>
+        <span class="microcopy" style="font-size:13px;color:#5a5546">Points: ${sum.totalPoints}</span></div>
+      <div class="sumcard">🔎 <strong>Evidence solved:</strong> ${state.results.length}/${E.EVIDENCE.length}</div>
+      <div class="sumcard">📚 <strong>Skills practiced:</strong> ${skills.join(", ")}
+        <br><span style="font-size:13px;color:#5a5546">A parent reading this can see exactly what was practiced. Nothing was saved.</span></div>
+      <div class="sumcard">🗣️ ${sum.coaching}</div>`;
+    show("scr-summary");
+    announce("Case report ready. Independence score "+sum.independenceScore+".");
+  }
+})();
+</script>
+</body>
+</html>
+
+
