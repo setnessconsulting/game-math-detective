@@ -65,6 +65,75 @@ function clockLabel(hour: number, minute: number): string {
   return `${hour}:${String(minute).padStart(2, "0")}`;
 }
 
+function clockHandAngle(hour: number, minute: number, hand: "hour" | "minute"): number {
+  return hand === "hour" ? (hour % 12) * 30 + minute * 0.5 : minute * 6;
+}
+
+function settingVignetteFor(settingId: string): {
+  mark: string;
+  prop: string;
+  detail: string;
+} {
+  switch (settingId) {
+    case "community-garden":
+      return { mark: "✿", prop: "SEED TRAY", detail: "Look for growing clues among plots, weather notes, and seed counts." };
+    case "makers-market":
+      return { mark: "✦", prop: "MARKET STALL", detail: "Look for bright displays, receipts, and clever maker tools." };
+    case "sky-observatory":
+      return { mark: "✧", prop: "STAR MAP", detail: "Look for quiet signals, sky clocks, and careful observations." };
+    case "library-archive":
+      return { mark: "▤", prop: "ARCHIVE SHELF", detail: "Look for number trails hidden in records, maps, and catalog notes." };
+    default:
+      return { mark: "⌕", prop: "CASE FILE", detail: "Look closely. Every object can carry a useful clue." };
+  }
+}
+
+function stationIconFor(station: SceneModel["stations"][number] | undefined): string {
+  const family = stationLabel(station).toLowerCase();
+  if (family.includes("clock")) return "◷";
+  if (family.includes("ruler")) return "↔";
+  if (family.includes("receipt") || family.includes("table") || family.includes("log")) return "▤";
+  if (family.includes("map") || family.includes("grid") || family.includes("star")) return "⌖";
+  if (family.includes("code") || family.includes("badge")) return "✦";
+  if (family.includes("tray") || family.includes("fraction")) return "◒";
+  return "⌕";
+}
+
+function AnalogClock({
+  hour,
+  minute,
+  label,
+}: {
+  hour: number;
+  minute: number;
+  label: string;
+}) {
+  return (
+    <div className="md-clock-card">
+      <div className="md-clock-face" aria-hidden="true">
+        {Array.from({ length: 12 }, (_, index) => (
+          <span
+            className="md-clock-tick"
+            key={index}
+            style={{ transform: `translateX(-50%) rotate(${index * 30}deg)` }}
+          />
+        ))}
+        <span
+          className="md-clock-hand md-clock-hour"
+          style={{ transform: `translateX(-50%) rotate(${clockHandAngle(hour, minute, "hour")}deg)` }}
+        />
+        <span
+          className="md-clock-hand md-clock-minute"
+          style={{ transform: `translateX(-50%) rotate(${clockHandAngle(hour, minute, "minute")}deg)` }}
+        />
+        <span className="md-clock-center" />
+      </div>
+      <span>{label}</span>
+      <strong>{clockLabel(hour, minute)}</strong>
+    </div>
+  );
+}
+
 function renderPresentation(presentation: PresentationPayload): ReactNode {
   switch (presentation.kind) {
     case "ruler":
@@ -86,9 +155,9 @@ function renderPresentation(presentation: PresentationPayload): ReactNode {
     case "clockPair":
       return (
         <div className="md-object md-clock-pair" role="group" aria-label="Two clocks showing the start and end times">
-          <div className="md-clock-card"><span>{presentation.startLabel}</span><strong>{clockLabel(presentation.startH, presentation.startM)}</strong></div>
+          <AnalogClock hour={presentation.startH} minute={presentation.startM} label={presentation.startLabel} />
           <span className="md-arrow" aria-hidden="true">→</span>
-          <div className="md-clock-card"><span>{presentation.endLabel}</span><strong>{clockLabel(presentation.endH, presentation.endM)}</strong></div>
+          <AnalogClock hour={presentation.endH} minute={presentation.endM} label={presentation.endLabel} />
         </div>
       );
     case "dataTable":
@@ -134,7 +203,7 @@ function renderPresentation(presentation: PresentationPayload): ReactNode {
         </div>
       );
     case "expressionCode":
-      return <div className="md-object md-code-object" role="img" aria-label={`Badge code ${presentation.a} ${presentation.firstOp} ${presentation.b} ${presentation.secondOp} ${presentation.c}`}><span>{presentation.label}</span><strong>{presentation.a} {presentation.firstOp} {presentation.b} {presentation.secondOp} {presentation.c} = ?</strong></div>;
+      return <div className="md-object md-code-object md-code-machine" role="img" aria-label={`Badge code ${presentation.a} ${presentation.firstOp} ${presentation.b} ${presentation.secondOp} ${presentation.c}`}><span>{presentation.label}</span><div className="md-code-display"><strong>{presentation.a} {presentation.firstOp} {presentation.b} {presentation.secondOp} {presentation.c} = ?</strong><span className="md-code-light" aria-hidden="true" /></div></div>;
     case "tileEquation":
       return <div className="md-object md-code-object" role="group" aria-label={`Build an equation that equals ${presentation.target}`}><span>Badge code target</span><strong>{presentation.target}</strong><div className="md-tile-row" role="group" aria-label="Available equation tiles">{presentation.tiles.map((tile, index) => <span className="md-tile" key={`${tile}-${index}`}>{tile}</span>)}</div></div>;
     case "statList":
@@ -315,10 +384,16 @@ export default function MathDetective() {
     handleIntent({ t: "submitAnswer", evidenceId: currentEvidence.id, value });
   };
 
-  const renderBriefing = () => (
+  const renderBriefing = () => {
+    const settingVignette = settingVignetteFor(scene.world.setting.id);
+    return (
     <section aria-labelledby="briefing-title" className="md-flow-section">
       <div className="md-section-kicker">{scene.narrative?.settingLabel ?? "Case file opened"}</div><h2 id="briefing-title">Briefing</h2>
       <p className="md-goal-copy">{scene.narrative?.briefing.text ?? scene.intro ?? run.intro}</p>
+      <div className={`md-setting-vignette md-setting-vignette-${scene.world.setting.id}`}>
+        <div className="md-setting-art" aria-hidden="true"><span>{settingVignette.mark}</span><strong>{settingVignette.prop}</strong><i>CASE SITE</i></div>
+        <div><div className="md-section-kicker">Case setting</div><strong>{scene.world.setting.label}</strong><p>{settingVignette.detail}</p></div>
+      </div>
       <p className="md-muted">{scene.narrative?.settingDescription.text}</p>
       <div className="md-lineup" role="group" aria-label="Suspect lineup">{scene.suspects.map((suspect) => <article className="md-suspect-mini" key={suspect.id}><span className="md-avatar" aria-hidden="true">{suspect.icon}</span><strong>{suspect.name}</strong><span>{scene.narrative?.suspectIntroductions[suspect.id]?.text ?? "Possible suspect"}</span></article>)}</div>
       <p className="md-muted">Follow the evidence. Every clue changes the case file.</p>
@@ -336,9 +411,10 @@ export default function MathDetective() {
           </button>
         ))}
       </div>
-      <div className="md-actions"><button type="button" aria-label="Begin case" data-testid="begin-case" ref={beginRef} onClick={() => handleIntent({ t: "continue" })} disabled={!hostReady}>Start investigating</button></div>
+      <div className="md-actions"><button type="button" aria-label="Start investigating" data-testid="begin-case" ref={beginRef} onClick={() => handleIntent({ t: "continue" })} disabled={!hostReady}>Start investigating</button></div>
     </section>
-  );
+    );
+  };
 
   const renderHintArea = () => {
     if (!currentEvidence || scene.clue.solved) return null;
@@ -361,7 +437,7 @@ export default function MathDetective() {
       const last = (currentStation?.index ?? 0) + 1 >= scene.stations.length;
       return <section aria-labelledby="earned-title" className="md-earned-card"><span className="md-result-glyph" aria-hidden="true">★</span><div><div className="md-section-kicker">Case file updated</div><h2 id="earned-title">Clue added</h2><p><strong>{currentEvidence.constraint.chip}</strong></p><p className="md-muted">{currentEvidence.constraint.sentence}</p><button type="button" data-testid="next-station" onClick={() => handleIntent({ t: "continue" })}>{last ? "Open deduction board" : "Find next evidence"}</button></div></section>;
     }
-    if (!stationReady) return <section aria-labelledby="station-select-title" className="md-station-select"><div className="md-section-kicker">{scene.world.setting.label}</div><h2 id="station-select-title">Evidence station</h2><p className="md-goal-copy">Choose the glowing station, inspect it, then open its math challenge.</p><div className="md-station-card md-station-card-active"><span className="md-station-icon" aria-hidden="true">⌕</span><div><strong>{stationLabel(currentStation)}</strong><span>{currentEvidence.goal}</span></div><button type="button" data-testid="inspect-station" onClick={() => { if (handleIntent({ t: "enterStation", evidenceId: currentEvidence.id })) setStationReady(true); }}>Inspect station</button></div><div className="md-progress-strip" role="group" aria-label={`Evidence progress ${(currentStation?.index ?? 0) + 1} of ${scene.stations.length}`}>{scene.stations.map((station) => <span className={station.status === "completed" ? "md-progress-dot md-progress-dot-done" : station.status === "active" ? "md-progress-dot md-progress-dot-current" : "md-progress-dot"} key={station.evidenceId} />)}</div></section>;
+    if (!stationReady) return <section aria-labelledby="station-select-title" className="md-station-select"><div className="md-section-kicker">{scene.world.setting.label}</div><h2 id="station-select-title">Evidence station</h2><p className="md-goal-copy">Choose the glowing station, inspect it, then open its math challenge.</p><div className="md-station-card md-station-card-active"><span className="md-station-icon" aria-hidden="true">{stationIconFor(currentStation)}</span><div><strong>{stationLabel(currentStation)}</strong><span>{currentEvidence.goal}</span></div><button type="button" data-testid="inspect-station" onClick={() => { if (handleIntent({ t: "enterStation", evidenceId: currentEvidence.id })) setStationReady(true); }}>Inspect station</button></div><div className="md-progress-strip" role="group" aria-label={`Evidence progress ${(currentStation?.index ?? 0) + 1} of ${scene.stations.length}`}>{scene.stations.map((station) => <span className={station.status === "completed" ? "md-progress-dot md-progress-dot-done" : station.status === "active" ? "md-progress-dot md-progress-dot-current" : "md-progress-dot"} key={station.evidenceId} />)}</div></section>;
     return <section aria-labelledby="evidence-title" className="md-challenge-section"><div className="md-section-kicker">{stationLabel(currentStation)}</div><h2 id="evidence-title">{currentEvidence.goal}</h2><p className="md-muted">{scene.narrative?.cluePhrases[currentEvidence.id]?.text}</p><div className="md-presentation-frame">{renderPresentation(currentEvidence.presentation)}</div>{scene.overlay === "challenge" ? <div className="md-challenge-card"><div className="md-answer-row"><label htmlFor="answer-input">Your answer ({currentEvidence.answer.unit})</label><input id="answer-input" aria-label="Numeric answer" data-testid="answer-input" inputMode="decimal" ref={answerInputRef} type="number" step="any" value={answer} onChange={(event) => setAnswer(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") submitAnswer(); }} /><button type="button" data-testid="submit-answer" onClick={submitAnswer}>Check evidence</button></div>{feedback?.itemId === currentEvidence.id && !feedback.correct ? <div className="md-feedback md-feedback-warn" role="status"><strong>Check the evidence · {readableTag(feedback.misconceptionTag)}</strong><p>{feedback.text}</p></div> : null}{renderHintArea()}<button type="button" className="md-button-quiet md-close-button" onClick={() => handleIntent({ t: "closeChallenge" })}>Back to station</button></div> : <div className="md-open-challenge"><p>Use the evidence object, then solve the semantic challenge.</p><button type="button" data-testid="open-challenge" onClick={() => handleIntent({ t: "openChallenge", evidenceId: currentEvidence.id })}>Open math challenge</button></div>}</section>;
   };
 
@@ -377,12 +453,12 @@ export default function MathDetective() {
     const lastAccusation = hostRef.current?.getState().accusations.at(-1);
     const closed = scene.outcome === "closed";
     if (scene.casePhase === "guided") return <section aria-labelledby="guided-title" className="md-verdict-card md-verdict-guided"><span className="md-result-glyph" aria-hidden="true">↺</span><div><div className="md-section-kicker">Guided recovery</div><h2 id="guided-title">Let’s follow the evidence</h2><p>{scene.narrative?.verdict.recovery.text ?? "We can review the clue links together. The case stays open, and there is no penalty for trying again."}</p><button type="button" onClick={() => handleIntent({ t: "continue" })}>Finish guided case</button></div></section>;
-    return <section aria-labelledby="verdict-title" className={`md-verdict-card ${closed ? "md-verdict-closed" : "md-verdict-wrong"}`}><span className="md-result-glyph" aria-hidden="true">{closed ? "★" : "↺"}</span><div><div className="md-section-kicker">Verdict</div><h2 id="verdict-title">{closed ? "Case closed" : "Check the evidence again"}</h2><p>{closed ? scene.narrative?.verdict.closed.text : scene.narrative?.verdict.recovery.text}</p>{!closed && lastAccusation?.contradictedBy.length ? <div className="md-contradiction"><strong>Contradicting clue</strong>{lastAccusation.contradictedBy.map((id) => <p key={id}>{scene.deduction.chips.find((chip) => chip.id === id)?.sentence}</p>)}</div> : null}<button type="button" onClick={() => handleIntent({ t: "continue" })}>{closed ? "Open case summary" : "Follow the evidence again"}</button></div></section>;
+    return <section aria-labelledby="verdict-title" className={`md-verdict-card ${closed ? "md-verdict-closed" : "md-verdict-wrong"}`}><span className="md-result-glyph" aria-hidden="true">{closed ? "★" : "↺"}</span><div><div className="md-section-kicker">Verdict</div><h2 id="verdict-title">{closed ? "Case closed" : "Check the evidence again"}</h2><p>{closed ? scene.narrative?.verdict.closed.text : scene.narrative?.verdict.recovery.text}</p>{!closed && lastAccusation?.contradictedBy.length ? <div className="md-contradiction"><strong>Contradicting clue</strong>{lastAccusation.contradictedBy.map((id) => <p key={id}>{scene.deduction.chips.find((chip) => chip.id === id)?.sentence}</p>)}</div> : null}<button type="button" onClick={() => handleIntent({ t: "continue" })}>{closed ? "Open case summary" : "Follow the evidence again"}</button></div>{closed ? <div className="md-case-closed-stamp" aria-hidden="true">CASE<br />CLOSED</div> : null}</section>;
   };
 
   const renderSummary = () => {
     const summary = hostRef.current ? summarizeCase(hostRef.current.getState()) : null;
-    return <section aria-labelledby="summary-title" className="md-summary-card"><div className="md-section-kicker">Case file complete</div><h2 id="summary-title">A sharp investigation</h2><p className="md-independence"><strong>{summary?.independenceScore ?? 0}%</strong><span>independence score</span></p><p>{summary?.coaching}</p><div className="md-summary-grid"><div><strong>{summary?.evidenceSolved ?? 0}/{summary?.evidenceTotal ?? 0}</strong><span>evidence solved</span></div><div><strong>{summary?.totalPoints ?? 0}</strong><span>points earned</span></div><div><strong>{summary?.hintsTotal ?? 0}</strong><span>hints used</span></div></div><div className="md-chip-strip">{summary?.skills.map((skill) => <span className="md-chip" key={skill}>{skill}</span>)}</div><p className="md-muted">{summary?.parentSentence} Nothing was saved.</p><button type="button" onClick={() => { setCaseSeed((seed) => seed + 1); setNotice("A fresh case file is ready."); }}>Play another case</button></section>;
+    return <section aria-labelledby="summary-title" className="md-summary-card"><div className="md-summary-seal" aria-hidden="true">FILE<br />SEALED</div><div className="md-section-kicker">Case file complete</div><h2 id="summary-title">A sharp investigation</h2><p className="md-independence"><strong>{summary?.independenceScore ?? 0}%</strong><span>independence score</span></p><p>{summary?.coaching}</p><div className="md-summary-grid"><div><strong>{summary?.evidenceSolved ?? 0}/{summary?.evidenceTotal ?? 0}</strong><span>evidence solved</span></div><div><strong>{summary?.totalPoints ?? 0}</strong><span>points earned</span></div><div><strong>{summary?.hintsTotal ?? 0}</strong><span>hints used</span></div></div><div className="md-chip-strip">{summary?.skills.map((skill) => <span className="md-chip" key={skill}>{skill}</span>)}</div><p className="md-muted">{summary?.parentSentence}</p><button type="button" onClick={() => { setCaseSeed((seed) => seed + 1); setNotice("A fresh case file is ready."); }}>Play another case</button></section>;
   };
 
   const renderPhase = () => {
@@ -394,5 +470,5 @@ export default function MathDetective() {
     return renderSummary();
   };
 
-  return <main className={`md-shell ${reducedMotion ? "md-reduced-motion" : ""}`} data-captions={captionsEnabled ? "on" : "off"}><header className="md-header"><div className="md-header-topline"><p className="md-eyebrow">MATH DETECTIVE · CASE DESK</p><div className="md-settings" role="group" aria-label="Presentation settings"><button type="button" aria-pressed={reducedMotion} onClick={() => setReducedMotion((value) => !value)}>{reducedMotion ? "Motion: reduced" : "Motion: full"}</button><button type="button" aria-pressed={captionsEnabled} onClick={() => setCaptionsEnabled((value) => !value)}>{captionsEnabled ? "Captions: on" : "Captions: off"}</button><button type="button" aria-pressed={soundEnabled} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? "Sound: on" : "Sound: off"}</button></div></div><h1>Math Detective</h1><p className="md-lede">{run.title}. Follow the clues, solve the math, and crack the case.</p><p className="md-muted" data-testid="agency-framing">{agencyFraming(agencyProgress)}</p></header><div className="md-case-layout"><section className="md-panel md-case-panel" aria-labelledby="case-title"><div className="md-case-bar"><span className="md-phase" data-testid="game-phase">{scene.casePhase}</span><span className="md-tier-badge">{TIER_META[run.tier].rank} · {caseMode === "mini" ? "Quick Case" : "Full Case"}</span></div><h2 id="case-title">{run.title}</h2>{renderPhase()}<p className="md-notice" role="status" aria-live="polite">{captionsEnabled ? notice : ""}</p></section><aside className="md-panel md-world-panel" aria-labelledby="phaser-title"><div className="md-world-heading"><div><div className="md-section-kicker">Live presentation</div><h2 id="phaser-title">Investigation map</h2></div><span className="md-live-dot" role="img" aria-label="Phaser live" /></div><p className="md-muted">The world surface shows the case state. Math controls and clues stay readable in HTML.</p><div ref={phaserParentRef} className="md-phaser" data-testid="phaser-surface" /><div className="md-world-legend" role="group" aria-label="Map legend"><span><i className="md-legend-dot md-legend-current" />current</span><span><i className="md-legend-dot md-legend-done" />earned</span><span><i className="md-legend-dot md-legend-open" />not opened</span></div></aside></div></main>;
+  return <main className={`md-shell ${reducedMotion ? "md-reduced-motion" : ""}`} data-captions={captionsEnabled ? "on" : "off"}><header className="md-header"><div className="md-header-topline"><p className="md-eyebrow">MATH DETECTIVE · CASE DESK</p><div className="md-settings" role="group" aria-label="Presentation settings"><button type="button" aria-pressed={reducedMotion} onClick={() => setReducedMotion((value) => !value)}>{reducedMotion ? "Motion: reduced" : "Motion: full"}</button><button type="button" aria-pressed={captionsEnabled} onClick={() => setCaptionsEnabled((value) => !value)}>{captionsEnabled ? "Captions: on" : "Captions: off"}</button><button type="button" aria-pressed={soundEnabled} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? "Sound: on" : "Sound: off"}</button></div></div><h1>Math Detective</h1><p className="md-lede">{run.title}. Follow the clues, solve the math, and crack the case.</p><p className="md-muted" data-testid="agency-framing">{agencyFraming(agencyProgress)}</p></header><div className="md-case-layout"><section className="md-panel md-case-panel" aria-labelledby="case-title"><div className="md-case-bar"><span className="md-phase" data-testid="game-phase">{scene.casePhase}</span><span className="md-tier-badge">{TIER_META[run.tier].rank} · {caseMode === "mini" ? "Quick Case" : "Full Case"}</span></div><h2 id="case-title">{run.title}</h2>{renderPhase()}<p className="md-notice" role="status" aria-live="polite">{captionsEnabled ? notice : ""}</p></section><aside className="md-panel md-world-panel" data-phase={scene.casePhase} data-setting={scene.world.setting.id} aria-labelledby="phaser-title"><div className="md-world-heading"><div><div className="md-section-kicker">Case file map</div><h2 id="phaser-title">The investigation board</h2></div><span className="md-live-dot" role="img" aria-label="Case map active" /></div><p className="md-muted">Your math changes the case file here. Filed clues and remaining leads stay visible as you investigate.</p><div ref={phaserParentRef} className="md-phaser" data-testid="phaser-surface" /><div className="md-world-legend" role="group" aria-label="Case map legend"><span><i className="md-legend-dot md-legend-current" />next</span><span><i className="md-legend-dot md-legend-done" />filed</span><span><i className="md-legend-dot md-legend-open" />up ahead</span></div></aside></div></main>;
 }

@@ -48,6 +48,12 @@ interface PhaserLike {
         h: number,
         color: number,
       ) => { setName: (name: string) => unknown };
+      circle: (
+        x: number,
+        y: number,
+        radius: number,
+        color: number,
+      ) => { setName: (name: string) => unknown };
     };
     children: { getByName: (name: string) => { setText: (text: string) => void } | null };
   };
