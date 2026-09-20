@@ -12,7 +12,7 @@ test("initial and evidence states remain keyboard and axe accessible", async ({ 
   await page.goto("/");
   await expectAccessible(page);
 
-  const begin = page.getByRole("button", { name: "Begin case" });
+  const begin = page.getByRole("button", { name: "Start investigating" });
   await expect(begin).toBeEnabled();
   await begin.focus();
   await begin.press("Enter");

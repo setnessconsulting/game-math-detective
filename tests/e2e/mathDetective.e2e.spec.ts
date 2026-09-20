@@ -32,7 +32,7 @@ test("plays the deterministic quick case through the deduction board", async ({ 
   await expect(page.getByTestId("game-phase")).toHaveText("briefing");
   await expect(page.getByTestId("agency-framing")).toHaveText("Agency file · case 1 · 0 closed");
 
-  await page.getByRole("button", { name: "Begin case" }).click();
+  await page.getByRole("button", { name: "Start investigating" }).click();
   await expect(page.getByTestId("game-phase")).toHaveText("evidence");
   await expect(page.getByRole("heading", { name: "Evidence station" })).toBeVisible();
 
