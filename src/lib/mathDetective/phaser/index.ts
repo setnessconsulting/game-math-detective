@@ -4,6 +4,7 @@ export {
   type ChallengeResponder,
   type HostAdapter,
   type HostAdapterOptions,
+  type PresentationOptions,
   type PhaserRuntime,
 } from "./hostAdapter";
 
@@ -25,3 +26,15 @@ export {
   planFocusTransition,
   type FocusBoundaryEvent,
 } from "./focusBoundary";
+
+export {
+  layoutWorld,
+  renderDetectiveWorld,
+  worldCanvasSize,
+  type WorldCanvasSize,
+  type WorldDisplay,
+  type WorldLayout,
+  type WorldSceneLike,
+  type WorldStationLayout,
+  type WorldSuspectLayout,
+} from "./worldView";

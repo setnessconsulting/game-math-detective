@@ -7,18 +7,25 @@ import {
 import {
   createMathDetectiveHostAdapter,
   createPhaserRuntime,
+  worldCanvasSize,
   type HostAdapter,
 } from "@/lib/mathDetective/phaser";
-import { generateCase } from "@/lib/mathDetective/solver";
+import { generateCase, TIERS } from "@/lib/mathDetective/solver";
+import { initialTier } from "@/lib/mathDetective/adaptivity";
 import { projectScene } from "@/lib/mathDetective/scene";
-import type { SceneIntent, SceneModel } from "@/lib/mathDetective/scene";
+import type { LayoutMode, SceneIntent, SceneModel } from "@/lib/mathDetective/scene";
 import type {
   CaseMode,
+  DifficultyTier,
   GeneratedEvidence,
   PresentationPayload,
 } from "@/lib/mathDetective/types";
+import { TIER_META } from "@/lib/mathDetective/skills";
 
-const SESSION_ID = "md-game-139-preview";
+const SESSION_ID = "md-game-140-preview";
+const AUTO_TIER = initialTier(null);
+
+type RankSelection = "auto" | DifficultyTier;
 
 type LocalIntent =
   | { t: "continue" }
@@ -136,10 +143,21 @@ function stationLabel(station: SceneModel["stations"][number] | undefined): stri
   return station ? station.skillId.replaceAll("-", " ") : "Evidence station";
 }
 
+function detectLayoutMode(width: number): LayoutMode {
+  if (width < 620) return "phonePortrait";
+  if (width < 960) return "tablet";
+  return "desktop";
+}
+
 export default function MathDetective() {
   const [caseMode, setCaseMode] = useState<CaseMode>("mini");
+  const [rankSelection, setRankSelection] = useState<RankSelection>("auto");
   const [caseSeed, setCaseSeed] = useState(42);
-  const run = useMemo(() => generateCase({ seed: caseSeed, tier: "D3", mode: caseMode }), [caseMode, caseSeed]);
+  const selectedTier = rankSelection === "auto" ? AUTO_TIER : rankSelection;
+  const run = useMemo(() => generateCase({ seed: caseSeed, tier: selectedTier, mode: caseMode }), [caseMode, caseSeed, selectedTier]);
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>(() =>
+    detectLayoutMode(typeof window === "undefined" ? 1200 : window.innerWidth),
+  );
   const [scene, setScene] = useState<SceneModel>(initialScene);
   const [hostReady, setHostReady] = useState(false);
   const [answer, setAnswer] = useState("");
@@ -160,8 +178,21 @@ export default function MathDetective() {
   const beginRef = useRef<HTMLButtonElement>(null);
   const revealRef = useRef<HTMLButtonElement>(null);
   const soundEnabledRef = useRef(soundEnabled);
+  const presentationRef = useRef({ layoutMode, reducedMotion, captionsEnabled });
 
   useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
+
+  useEffect(() => {
+    const nextPresentation = { layoutMode, reducedMotion, captionsEnabled };
+    presentationRef.current = nextPresentation;
+    hostRef.current?.setPresentationOptions(nextPresentation);
+  }, [captionsEnabled, layoutMode, reducedMotion]);
+
+  useEffect(() => {
+    const handleResize = () => setLayoutMode(detectLayoutMode(window.innerWidth));
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const parent = phaserParentRef.current;
@@ -176,7 +207,9 @@ export default function MathDetective() {
     setPendingHintLevel(null);
     setNotice("Preparing the case file…");
 
-    createPhaserRuntime({ width: 640, height: 320, backgroundColor: "#081522" })
+    const presentation = presentationRef.current;
+    const canvasSize = worldCanvasSize(presentation.layoutMode);
+    createPhaserRuntime({ ...canvasSize, backgroundColor: "#081522" })
       .then((runtime) => {
         if (disposed) { runtime.destroy(); return; }
         const host = createMathDetectiveHostAdapter({
@@ -189,6 +222,9 @@ export default function MathDetective() {
             if (effect.kind === "announce") setNotice(effect.text);
             if (effect.kind === "cue" && soundEnabledRef.current) setNotice(`Sound cue: ${effect.name}`);
           }),
+          layoutMode: presentation.layoutMode,
+          reducedMotion: presentation.reducedMotion,
+          captionsEnabled: presentation.captionsEnabled,
         });
         hostRef.current = host;
         setHostReady(true);
@@ -267,6 +303,16 @@ export default function MathDetective() {
         <button type="button" aria-pressed={caseMode === "mini"} onClick={() => setCaseMode("mini")}>Quick case <small>≈ 2 min · {caseMode === "mini" ? "selected" : ""}</small></button>
         <button type="button" aria-pressed={caseMode === "full"} onClick={() => setCaseMode("full")}>Full case <small>more clues · {caseMode === "full" ? "selected" : ""}</small></button>
       </div>
+      <div className="md-rank-picker" role="group" aria-label="Detective rank">
+        <button type="button" aria-pressed={rankSelection === "auto"} onClick={() => setRankSelection("auto")}>
+          Auto rank <small>{TIER_META[AUTO_TIER].rank} · suggested</small>
+        </button>
+        {TIERS.map((tier) => (
+          <button type="button" key={tier} aria-pressed={rankSelection === tier} onClick={() => setRankSelection(tier)}>
+            {TIER_META[tier].rank} <small>{tier} · {rankSelection === tier ? "selected" : ""}</small>
+          </button>
+        ))}
+      </div>
       <div className="md-actions"><button type="button" aria-label="Begin case" data-testid="begin-case" ref={beginRef} onClick={() => handleIntent({ t: "continue" })} disabled={!hostReady}>Start investigating</button></div>
     </section>
   );
@@ -321,5 +367,5 @@ export default function MathDetective() {
     return renderSummary();
   };
 
-  return <main className={`md-shell ${reducedMotion ? "md-reduced-motion" : ""}`} data-captions={captionsEnabled ? "on" : "off"}><header className="md-header"><div className="md-header-topline"><p className="md-eyebrow">MATH DETECTIVE · CASE DESK</p><div className="md-settings" role="group" aria-label="Presentation settings"><button type="button" aria-pressed={reducedMotion} onClick={() => setReducedMotion((value) => !value)}>{reducedMotion ? "Motion: reduced" : "Motion: full"}</button><button type="button" aria-pressed={captionsEnabled} onClick={() => setCaptionsEnabled((value) => !value)}>{captionsEnabled ? "Captions: on" : "Captions: off"}</button><button type="button" aria-pressed={soundEnabled} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? "Sound: on" : "Sound: off"}</button></div></div><h1>Math Detective</h1><p className="md-lede">{run.title}. Follow the clues, solve the math, and crack the case.</p></header><div className="md-case-layout"><section className="md-panel md-case-panel" aria-labelledby="case-title"><div className="md-case-bar"><span className="md-phase" data-testid="game-phase">{scene.casePhase}</span><span className="md-tier-badge">Agent · {caseMode === "mini" ? "Quick Case" : "Full Case"}</span></div><h2 id="case-title">{run.title}</h2>{renderPhase()}<p className="md-notice" role="status" aria-live="polite">{captionsEnabled ? notice : ""}</p></section><aside className="md-panel md-world-panel" aria-labelledby="phaser-title"><div className="md-world-heading"><div><div className="md-section-kicker">Live presentation</div><h2 id="phaser-title">Investigation map</h2></div><span className="md-live-dot" role="img" aria-label="Phaser live" /></div><p className="md-muted">The world surface shows the case state. Math controls and clues stay readable in HTML.</p><div ref={phaserParentRef} className="md-phaser" data-testid="phaser-surface" /><div className="md-world-legend" role="group" aria-label="Map legend"><span><i className="md-legend-dot md-legend-current" />current</span><span><i className="md-legend-dot md-legend-done" />earned</span><span><i className="md-legend-dot md-legend-open" />not opened</span></div></aside></div></main>;
+  return <main className={`md-shell ${reducedMotion ? "md-reduced-motion" : ""}`} data-captions={captionsEnabled ? "on" : "off"}><header className="md-header"><div className="md-header-topline"><p className="md-eyebrow">MATH DETECTIVE · CASE DESK</p><div className="md-settings" role="group" aria-label="Presentation settings"><button type="button" aria-pressed={reducedMotion} onClick={() => setReducedMotion((value) => !value)}>{reducedMotion ? "Motion: reduced" : "Motion: full"}</button><button type="button" aria-pressed={captionsEnabled} onClick={() => setCaptionsEnabled((value) => !value)}>{captionsEnabled ? "Captions: on" : "Captions: off"}</button><button type="button" aria-pressed={soundEnabled} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? "Sound: on" : "Sound: off"}</button></div></div><h1>Math Detective</h1><p className="md-lede">{run.title}. Follow the clues, solve the math, and crack the case.</p></header><div className="md-case-layout"><section className="md-panel md-case-panel" aria-labelledby="case-title"><div className="md-case-bar"><span className="md-phase" data-testid="game-phase">{scene.casePhase}</span><span className="md-tier-badge">{TIER_META[run.tier].rank} · {caseMode === "mini" ? "Quick Case" : "Full Case"}</span></div><h2 id="case-title">{run.title}</h2>{renderPhase()}<p className="md-notice" role="status" aria-live="polite">{captionsEnabled ? notice : ""}</p></section><aside className="md-panel md-world-panel" aria-labelledby="phaser-title"><div className="md-world-heading"><div><div className="md-section-kicker">Live presentation</div><h2 id="phaser-title">Investigation map</h2></div><span className="md-live-dot" role="img" aria-label="Phaser live" /></div><p className="md-muted">The world surface shows the case state. Math controls and clues stay readable in HTML.</p><div ref={phaserParentRef} className="md-phaser" data-testid="phaser-surface" /><div className="md-world-legend" role="group" aria-label="Map legend"><span><i className="md-legend-dot md-legend-current" />current</span><span><i className="md-legend-dot md-legend-done" />earned</span><span><i className="md-legend-dot md-legend-open" />not opened</span></div></aside></div></main>;
 }

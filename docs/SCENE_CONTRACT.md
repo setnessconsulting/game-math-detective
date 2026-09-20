@@ -27,6 +27,8 @@ GAME-173 owns the future production Figma source of truth. Until that story supp
 
 `SceneModel` exposes case/evidence/suspect/deduction data needed for rendering, but it does not expose solver predicates or a second correctness reducer. The renderer cannot derive the culprit, earn a clue, eliminate a suspect, award points, or settle a verdict.
 
+The `SceneModel.world` projection is the reusable GAME-140 world boundary. It carries the typed detective-office setting, chapter/station roster, engine-derived suspect statuses, clue-discovery state, environmental feedback, and transition metadata. `src/lib/mathDetective/phaser/worldView.ts` consumes this object only; it has no reducer, generator, answer, or constraint imports. The current `detective-office` setting id is an implementation fallback until GAME-245 supplies the authored setting/content adapter, and is not a claim of final world art.
+
 ## Ownership
 
 React/DOM owns semantic and assistive interaction: briefing copy, numeric forms, tables, keypads, selectors, equations, challenge feedback, deduction links, accusation/verdict controls, pause/settings controls, captions, and focus traps. Phaser owns the live world surface, station markers, clue motion, and responsive visual presentation. Both consume the projection; neither owns case truth.
@@ -40,6 +42,8 @@ Every renderer-originated intent carries `sessionId`, `generation`, and `caseId`
 `resolveSceneIntent` rejects stale session/generation/case tokens, unknown evidence or suspects, unearned evidence links, illegal phases, unsolved continuation, solved challenge reopen, insufficient accusation links, and duplicate settled accusations. Engine dispositions are limited to existing `EngineAction` values. Presentation dispositions only change overlay/highlight/selection/unblocked presentation state.
 
 `presentationComplete` is deliberately presentation-only. It cannot earn evidence, advance the engine, alter suspect state, change scoring, or settle a verdict.
+
+GAME-140 also requires the world surface to remain presentation-only during clue discovery: the renderer may show a pending reveal, a static reduced-motion state, and a written caption, but only the host/engine can make the clue available or advance the station.
 
 ## Focus transfer
 

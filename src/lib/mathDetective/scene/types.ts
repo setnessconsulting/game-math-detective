@@ -67,6 +67,62 @@ export type FocusTarget =
 
 export type LayoutMode = "phonePortrait" | "tablet" | "desktop";
 
+/** Typed presentation vocabulary for the reusable detective-world surface. */
+export type SceneWorldTransitionKind =
+  | "none"
+  | "caseEntry"
+  | "stationFocus"
+  | "stationComplete"
+  | "clueDiscovery"
+  | "suspectUpdate"
+  | "wrongAccusationRecovery"
+  | "verdict"
+  | "summary";
+
+export interface SceneWorldSetting {
+  /** Stable implementation id until GAME-245 supplies authored settings. */
+  id: "detective-office";
+  label: string;
+}
+
+export interface SceneWorldChapter {
+  current: number;
+  total: number;
+  label: string;
+}
+
+export type SceneClueDiscoveryState = "hidden" | "discovering" | "revealed";
+
+export interface SceneWorldClueDiscovery {
+  state: SceneClueDiscoveryState;
+  evidenceId: string | null;
+  chip: string | null;
+  sentence: string | null;
+}
+
+export interface SceneWorldTransition {
+  kind: SceneWorldTransitionKind;
+  durationMs: number;
+  reducedMotion: boolean;
+  captionsEnabled: boolean;
+}
+
+export interface SceneWorldFeedback {
+  state: "briefing" | "station" | "clue" | "board" | "recovery" | "closed";
+  label: string;
+}
+
+export interface SceneWorld {
+  setting: SceneWorldSetting;
+  chapter: SceneWorldChapter;
+  /** Reuses the same projected station/suspect objects consumed by React. */
+  stations: SceneStation[];
+  suspects: SceneSuspect[];
+  clueDiscovery: SceneWorldClueDiscovery;
+  environmentalFeedback: SceneWorldFeedback;
+  transition: SceneWorldTransition;
+}
+
 export interface SceneStation {
   evidenceId: string;
   skillId: SkillId;
@@ -134,6 +190,7 @@ export interface SceneModel {
   outcome: EngineState["outcome"];
   rejection: string | null;
   animation: SceneAnimationMeta;
+  world: SceneWorld;
 }
 
 export interface SceneProjectOptions {

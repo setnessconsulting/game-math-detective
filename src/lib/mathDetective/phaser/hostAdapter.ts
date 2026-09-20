@@ -16,6 +16,7 @@ import {
   focusAfterOverlayClose,
   projectScene,
   resolveSceneIntent,
+  type LayoutMode,
   type OverlayKind,
   type PresentationEffect,
   type SceneIntent,
@@ -50,6 +51,15 @@ export interface HostAdapterOptions {
   onEffects?: (effects: Effect[]) => void;
   onScene?: (scene: SceneModel) => void;
   onFocusTarget?: (target: SceneModel["focusTarget"]) => void;
+  layoutMode?: LayoutMode;
+  reducedMotion?: boolean;
+  captionsEnabled?: boolean;
+}
+
+export interface PresentationOptions {
+  layoutMode?: LayoutMode;
+  reducedMotion?: boolean;
+  captionsEnabled?: boolean;
 }
 
 export interface HostAdapter {
@@ -65,6 +75,7 @@ export interface HostAdapter {
   /** Harness helper: open challenge and inject a simulated authoritative answer. */
   simulateChallengeResult(evidenceId: string, correct: boolean): void;
   remount(parent: HTMLElement): void;
+  setPresentationOptions(options: PresentationOptions): void;
   destroy(): void;
 }
 
@@ -74,6 +85,9 @@ export function createMathDetectiveHostAdapter(options: HostAdapterOptions): Hos
   let overlay: OverlayKind = "none";
   let highlightedStationId: string | null = null;
   let pendingPresentation = false;
+  let layoutMode: LayoutMode = options.layoutMode ?? "desktop";
+  let reducedMotion = options.reducedMotion ?? false;
+  let captionsEnabled = options.captionsEnabled ?? true;
   let destroyed = false;
   let mountedParent: HTMLElement | null = options.parent ?? null;
   const now = options.now ?? (() => Date.now());
@@ -85,6 +99,9 @@ export function createMathDetectiveHostAdapter(options: HostAdapterOptions): Hos
       overlay,
       highlightedStationId,
       pendingPresentationComplete: pendingPresentation,
+      layoutMode,
+      reducedMotion,
+      captionsEnabled,
     });
 
   const publish = () => {
@@ -220,6 +237,19 @@ export function createMathDetectiveHostAdapter(options: HostAdapterOptions): Hos
       mountedParent = parent;
       options.runtime.destroy();
       options.runtime.mount(parent, buildScene());
+      publish();
+    },
+
+    setPresentationOptions(nextOptions) {
+      if (destroyed) return;
+      const changed =
+        (nextOptions.layoutMode !== undefined && nextOptions.layoutMode !== layoutMode) ||
+        (nextOptions.reducedMotion !== undefined && nextOptions.reducedMotion !== reducedMotion) ||
+        (nextOptions.captionsEnabled !== undefined && nextOptions.captionsEnabled !== captionsEnabled);
+      if (!changed) return;
+      if (nextOptions.layoutMode !== undefined) layoutMode = nextOptions.layoutMode;
+      if (nextOptions.reducedMotion !== undefined) reducedMotion = nextOptions.reducedMotion;
+      if (nextOptions.captionsEnabled !== undefined) captionsEnabled = nextOptions.captionsEnabled;
       publish();
     },
 

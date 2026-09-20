@@ -35,10 +35,12 @@ test("plays the deterministic quick case through the deduction board", async ({ 
   await expect(page.getByTestId("game-phase")).toHaveText("evidence");
   await expect(page.getByRole("heading", { name: "Evidence station" })).toBeVisible();
 
-  for (let index = 0; index < 3; index += 1) {
+  for (let index = 0; index < 5; index += 1) {
     await solveCurrentEvidence(page);
     await expect(page.getByTestId("next-station")).toBeVisible();
+    const nextLabel = await page.getByTestId("next-station").innerText();
     await page.getByTestId("next-station").click();
+    if (nextLabel === "Open deduction board") break;
   }
 
   await expect(page.getByTestId("game-phase")).toHaveText("board");
