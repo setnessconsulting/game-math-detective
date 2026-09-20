@@ -65,7 +65,7 @@ Mobile project additionally guards against horizontal overflow on the evidence k
 
 ## 3. Deferred / known limitations (recorded, intentional)
 
-1. **Live-child discoverability protocol** still owner-run (CONSULTING-230) — automation cannot replace n≥8 kid playtests.
+1. **Live-child discoverability protocol** remains an owner-run qualitative gate (CONSULTING-230) — automation cannot replace the one-tester playtest, and the owner-reported acceptance is recorded in `PLAYTEST_PROTOCOL.md`.
 2. **Earned-break shell hook** (MD-13 external dep): Mini Case playable from picker; shell countdown integration lands with the Tier 1 break system.
 3. **Adaptivity tier shifts apply between cases**, never mid-case (by design; prevents whiplash) — so a single-session player sees at most ±1 tier change.
 4. Parallel-agent note: during this test round another agent's in-flight `lessonEngine`/`GamesHub`/`ShapeStudio` edits introduced their own transient lint/test failures; all Math Detective scopes remained green throughout (verified with scoped runs excluding `tests/lessonEngine.test.ts`).

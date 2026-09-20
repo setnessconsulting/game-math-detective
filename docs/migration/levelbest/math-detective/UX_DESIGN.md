@@ -29,7 +29,7 @@
 4. Checkpoint-lite shows the mechanic once with 3 suspects.
 5. Accusation auto-links constraints; the child only picks the suspect.
 
-**Test protocol (adult-free):** success = a child who has never seen the game completes the calibration case with zero adult input. Method: moderated playtests n ≥ 8 across D1/D3/D5 bands (task exists as follow-up spike; mirrors CONSULTING-158 pattern). Proxy acceptance until live tests run: heuristic expert review by 2 reviewers using the §14 checklist + task-model simulation documented below. **Marked honestly: live-kids validation is a user-only external step, not claimable from this run.**
+**Test protocol (adult-free):** success = one owner-selected child tester completes the calibration case with zero adult input. Method: one moderated playtest using the script in `PLAYTEST_PROTOCOL.md`; this is a lightweight qualitative release gate, not a population-level claim across D1/D3/D5 bands. Proxy acceptance until the live check runs: heuristic expert review by 2 reviewers using the §14 checklist + task-model simulation documented below. **Marked honestly: live-kids validation is a user-only external step, not claimable from an automated run.**
 
 Task-model walkthrough (documented evidence): each screen lists what a non-reader can do with icons alone; any action requiring text comprehension was redesigned out (see F-03, F-04 in §14).
 

@@ -44,6 +44,7 @@ comparison, benchmark, and named-IP language. D1–D2 generated narrative is
 checked against the 12-word sentence limit.
 
 The automated provenance, readability, and negative seeded-violation checks
-are implemented in `tests/mathDetective.narrative.test.ts`. Content-owner
-review and final production copy approval remain open gates; this contract is
-not a claim that those human reviews have happened.
+are implemented in `tests/mathDetective.narrative.test.ts`. The project owner
+approved the final production copy for the 2026-09-20 candidate in the release
+task. This contract does not replace the automated checks or claim approval for
+future copy changes.

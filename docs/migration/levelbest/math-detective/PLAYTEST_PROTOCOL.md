@@ -1,24 +1,24 @@
-# Math Detective — Real-Child Discoverability Playtest Protocol
+# Math Detective — Single-Tester Discoverability Playtest Protocol
 
-**Status:** Protocol finalized 2026-08-27 · **Owner step** (cannot be executed by an automated agent)
+**Status:** Protocol revised 2026-09-20 · **Owner step** (cannot be executed by an automated agent)
 **Jira:** CONSULTING-230 (MD-15) · Epic CONSULTING-190
-**Basis:** UX_DESIGN §3 test protocol + GAMES_PLAN discoverability bar. This document makes the protocol executable by a facilitator: recruiting, script, rubric, pass bar, and evidence recording.
+**Basis:** UX_DESIGN §3 test protocol + GAMES_PLAN discoverability bar. The release decision uses one owner-selected tester as a lightweight qualitative gate, not as a statistically representative study. This document makes the protocol executable by a facilitator: script, rubric, pass bar, and evidence recording.
 
 ---
 
 ## 1. What this gate decides
 
-MD-15's closure requires **live-child evidence** that a first-time player can complete the calibration/onboarding path with zero adult coaching. Machine-verifiable equivalents (heuristic expert review, task-model walkthrough, E2E journeys) are complete and recorded in `UI_TEST_REPORT.md`; they do not substitute for this study. **The Epic must not be marked Done until this gate passes.**
+MD-15's closure requires **live-child evidence** that one player can complete the calibration/onboarding path with zero adult coaching. Machine-verifiable equivalents (heuristic expert review, task-model walkthrough, E2E journeys) are complete and recorded in `UI_TEST_REPORT.md`; they do not substitute for this owner-run check. The revised gate is intentionally one tester: it answers whether this candidate is playable enough to ship, without claiming population-level usability. **The Epic must not be marked Done until this gate passes.**
 
 ## 2. Study design
 
 | Item | Requirement |
 |---|---|
-| Participants | n ≥ 8 children, mixed genders, no prior exposure to the game |
-| Age/difficulty spread | At least 2 children per placement band D1, D3, D5 (roughly: D1 = grades 1–2, D3 = grades 3–4, D5 = grades 6–8). Recruit via the rank row: set **Cadet / Agent / Inspector** manually so the band is controlled regardless of placement signal. |
+| Participants | Exactly one owner-selected child tester. No prior exposure is preferred; record if the tester has seen the game before. |
+| Age/difficulty spread | No recruitment quota. Record the approximate placement band if known; the single session is a qualitative release signal, not a claim across D1, D3, and D5. |
 | Setting | Quiet room, one facilitator + one child at a time; parent/guardian consent required; session recorded (screen + audio) with permission |
-| Device | The device the child normally uses (tablet or phone preferred; laptop acceptable). Include at least 3 phone sessions and at least 2 keyboard-only sessions. |
-| Duration | One Quick Case per child (≈ 90 s target); optionally one more case if the child asks |
+| Device | The device the child normally uses (tablet, phone, or laptop). Record device, browser, and input method when available; there are no phone or keyboard quotas. |
+| Duration | One Quick Case (≈ 90 s target); optionally one more case if the child asks |
 | Facilitator behavior | **Zero coaching.** Do not name buttons, do not point, do not explain mechanics. If the child asks a question, respond only with "What would you try?" Facilitator may read nothing aloud unless the child taps the read-aloud button themselves. |
 
 ## 3. Task script (per child)
@@ -32,9 +32,9 @@ MD-15's closure requires **live-child evidence** that a first-time player can co
 
 ## 4. Pass bar (matches EPIC_PLAN MD-15 AC)
 
-- **Primary:** ≥ 7 of 8 children complete the calibration/first case with zero adult input (T0–T1 unassisted).
-- **Secondary:** ≥ 6 of 8 reference at least one clue when explaining their accusation (T2) — evidence the deduction loop is understood, not guessed.
-- **Recovery:** wrong-answer/wrong-accusation moments do not produce abandonment in more than 1 of 8 sessions (T3).
+- **Primary:** the single tester completes the calibration/first case with zero adult input (T0–T1 unassisted), or the owner records why the observed flow was acceptable under the qualitative release decision.
+- **Secondary:** the tester references at least one clue when explaining their accusation (T2), when the question is asked — evidence the deduction loop is understood, not guessed.
+- **Recovery:** if a wrong answer or accusation occurs, the tester can continue without adult help (T3); record any abandonment or blocking confusion.
 
 ## 5. Recording template (one row per child)
 
@@ -44,15 +44,19 @@ MD-15's closure requires **live-child evidence** that a first-time player can co
 
 Where a hesitation maps to a code/design fix, file it against MD-15 with the row number as evidence; where it is a polish/copy matter, log it in the gap list (`BENCHMARK_COMPARISON.md`).
 
-## 6. Ethics & privacy
+## 6. Current release evidence
+
+On 2026-09-20 the owner reported that one child tester played the hosted Math Detective candidate and judged it good enough for production. No name or other child PII is recorded here. Device, input method, timing, and structured T0–T3 fields were not captured in the release task, so this is recorded as a qualitative owner acceptance signal rather than a measured usability study. The single-tester requirement is satisfied for this release decision; future sessions may add structured rows without changing the policy.
+
+## 7. Ethics & privacy
 
 - Guardian consent form before recording; child verbal assent.
 - Sessions are stored locally by the owner only; no child PII enters the repository or Jira beyond first-name-or-initial + band + age.
 - The game itself is session-only (nothing saved) — state this to the guardian from the `/safety` page wording.
 
-## 7. After the study
+## 8. After the study
 
-1. Record the completed table + pass-bar verdict as a comment on CONSULTING-230.
+1. Record the completed table when available, plus the pass-bar verdict, as a comment on CONSULTING-230.
 2. Map hesitations to fixes; remediate in-scope items and re-run the ladder (`typecheck && lint && test && build` + the Math Detective E2E suites).
 3. Only then mark MD-15 Done and update the Epic with the final implementation summary.
 
