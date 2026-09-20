@@ -258,7 +258,7 @@ function suspectGlyph(status: SceneSuspect["status"]): string {
 }
 
 function stationLabel(station: SceneStation): string {
-  return station.skillId.replaceAll("-", " ");
+  return station.objectFamily ?? station.skillId.replaceAll("-", " ");
 }
 
 function clueLabel(scene: SceneModel): string {
@@ -283,7 +283,7 @@ export function renderDetectiveWorld(
   const compactStyle = layout.compact ? "10px" : "11px";
 
   upsertRectangle(target, "md-world-background", width / 2, height / 2, width, height, 0x081522);
-  upsertText(target, "md-world-title", 16, 14, "DETECTIVE OFFICE · LIVE WORLD", {
+  upsertText(target, "md-world-title", 16, 14, `${scene.world.setting.label.toUpperCase()} · LIVE WORLD`, {
     fontFamily: "sans-serif",
     fontSize: "15px",
     color: "#f5c451",

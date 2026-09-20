@@ -13,6 +13,11 @@
 import { mulberry32, pickFrom, pickInt, shuffled } from "@/lib/games/shared/rng";
 import { SKILL_REGISTRY, TIERS, TIER_META, tierIndex, tierSkills } from "./skills";
 import { makeSuspects, STATION_GENERATORS } from "./generate";
+import {
+  createCaseNarrative,
+  selectCaseSetting,
+  verifyCaseNarrative,
+} from "./narrative";
 import type {
   CaseMode,
   CaseRun,
@@ -57,7 +62,8 @@ function buildAttempt(
   const { suspects, culpritId } = makeSuspects(rng, tier, mode);
   const culprit = suspects.find((s) => s.id === culpritId)!;
   const K = clueCount(tier, mode);
-  const skills = tierSkills(tier);
+  const setting = selectCaseSetting(seed, tier, mode);
+  const skills = tierSkills(tier).filter((skillId) => setting.compatibleSkills.includes(skillId));
   const attrsById = new Map(suspects.map((s) => [s.id, s.attrs]));
 
   interface SlotCandidate {
@@ -166,6 +172,15 @@ function buildAttempt(
   const evidences = fill(0, suspects.map((s) => s.id), new Set(), []);
   if (!evidences) return null;
 
+  const narrative = createCaseNarrative({
+    seed,
+    tier,
+    mode,
+    setting,
+    suspects,
+    evidences,
+  });
+
   const checkpointAfterIndices: number[] = [];
   if (mode === "full" && K >= 3) {
     const chapterSize = Math.ceil(K / 3);
@@ -178,6 +193,7 @@ function buildAttempt(
     caseId: `md-${seed}-${tier}-${mode}`,
     title: pickFrom(rng, CASE_TITLES),
     intro: `${suspects.length} suspects. Solve each clue to earn evidence, then name the culprit.`,
+    narrative,
     tier,
     mode,
     suspects,
@@ -193,6 +209,7 @@ function buildAttempt(
  */
 export function verifyCaseRun(run: CaseRun): CaseVerification {
   const problems: string[] = [];
+  problems.push(...verifyCaseNarrative(run.narrative, run.tier, run.suspects, run.evidences));
   const attrsById = new Map(run.suspects.map((s) => [s.id, s.attrs]));
   let live = run.suspects.map((s) => s.id);
 
@@ -253,11 +270,16 @@ export interface GenerateCaseResult {
 }
 
 function applyCalibration(run: CaseRun): CaseRun {
+  const intro = "Two clues. Practice the loop, then name the culprit.";
   return {
     ...run,
     caseId: "md-calibration-muffins",
     title: "The Case of the Missing Muffins",
-    intro: "Two clues. Practice the loop, then name the culprit.",
+    intro,
+    narrative: {
+      ...run.narrative,
+      briefing: { ...run.narrative.briefing, text: intro },
+    },
   };
 }
 

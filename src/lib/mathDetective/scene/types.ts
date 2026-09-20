@@ -6,6 +6,8 @@
  */
 import type { DetectivePhase, EngineState } from "../engine";
 import type {
+  CaseNarrative,
+  CaseSettingId,
   CaseMode,
   DifficultyTier,
   PresentationPayload,
@@ -80,9 +82,10 @@ export type SceneWorldTransitionKind =
   | "summary";
 
 export interface SceneWorldSetting {
-  /** Stable implementation id until GAME-245 supplies authored settings. */
-  id: "detective-office";
+  /** Authored setting id, or the empty-scene fallback before a case starts. */
+  id: CaseSettingId;
   label: string;
+  objectFamilies: string[];
 }
 
 export interface SceneWorldChapter {
@@ -130,6 +133,7 @@ export interface SceneStation {
   status: StationStatus;
   goal: string;
   presentationKind: PresentationPayload["kind"];
+  objectFamily: string | null;
   /** Chip text when earned; null until engine earns the clue. */
   earnedChip: string | null;
 }
@@ -187,6 +191,8 @@ export interface SceneModel {
   layoutMode: LayoutMode;
   title: string | null;
   intro: string | null;
+  /** Authored framing only; engine truth remains outside this projection. */
+  narrative: CaseNarrative | null;
   outcome: EngineState["outcome"];
   rejection: string | null;
   animation: SceneAnimationMeta;
