@@ -30,6 +30,12 @@ The setting selector uses a local stable hash, so narrative selection does not
 perturb the existing solver stream. No network call or browser storage is
 introduced; case narrative travels only with the in-memory `CaseRun`.
 
+`src/lib/mathDetective/agency.ts` adds the shell-facing agency file counter.
+It counts distinct cases and closed cases in module memory, so the header can
+frame a multi-case session without introducing scores, comparison language,
+browser storage, or a network dependency. A fresh browser session starts with
+an empty agency file by design.
+
 ## Copy and provenance gates
 
 Every authored value carries `source: "original-authored"`, the content-bank
