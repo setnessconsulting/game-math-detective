@@ -29,7 +29,7 @@
 4. Checkpoint-lite shows the mechanic once with 3 suspects.
 5. Accusation auto-links constraints; the child only picks the suspect.
 
-**Test protocol (adult-free):** success = one owner-selected child tester completes the calibration case with zero adult input. Method: one moderated playtest using the script in `PLAYTEST_PROTOCOL.md`; this is a lightweight qualitative release gate, not a population-level claim across D1/D3/D5 bands. Proxy acceptance until the live check runs: heuristic expert review by 2 reviewers using the §14 checklist + task-model simulation documented below. **Marked honestly: live-kids validation is a user-only external step, not claimable from an automated run.**
+**Test protocol (adult-free):** success = one owner-selected child tester completes the calibration case with zero adult input. Method: one moderated playtest using the script in `PLAYTEST_PROTOCOL.md`; this is a lightweight qualitative release gate, not a population-level claim across D1/D3/D5 bands. The owner reported one child tester played the hosted candidate and judged it good enough for production; structured session fields remain optional follow-up evidence. **Marked honestly: this does not claim broad live-kid validation or replace the owner-controlled session record.**
 
 Task-model walkthrough (documented evidence): each screen lists what a non-reader can do with icons alone; any action requiring text comprehension was redesigned out (see F-03, F-04 in §14).
 
@@ -155,6 +155,6 @@ Method: cognitive walkthrough of every flow (fresh + returning personas Maya/Dev
 | F-09 | Draft had streak chip animating reset visibly | Loss-aversion adjacency (policy risk) | Policy-critical | Silent reset mandated (REQUIREMENTS §6; §12 bans loss copy). |
 | F-10 | Relaxed mode didn't exist in first draft | Anxiety-prone kids had no pressure valve | Med | Relaxed mode added (§10). |
 
-**Audit outcome:** every main flow shortened or clarified (F-01, F-03, F-05, F-06); all states communicate intent (F-07, F-08); product reads calm (F-04, F-09, F-10). **Open blockers remaining: 0.** Live-kid playtest validation explicitly carried as user-only step in EPIC_PLAN (not claimable here).
+**Audit outcome:** every main flow shortened or clarified (F-01, F-03, F-05, F-06); all states communicate intent (F-07, F-08); product reads calm (F-04, F-09, F-10). **Open implementation blockers remaining: 0.** The one-tester owner acceptance is recorded in `PLAYTEST_PROTOCOL.md`; it is intentionally qualitative and does not claim broad live-kid validation.
 
 

@@ -61,7 +61,7 @@ Benchmark loop of *Agent Check-Up* (from PBS KIDS/PBS LearningMedia descriptions
 | Discoverability | Voiceover guidance | Icon chips, one-decision screens, pulsing affordance spec, read-aloud optional | Text/icon channel replaces voiceover; non-reader path needs live-kid proof |
 | Math breadth | Fractions/volume/coordinates/comparisons fixed set | 10-skill registry spanning grades 1–8 (REQUIREMENTS §3) | Exceeds reference by design intent |
 
-**Explicitly not claimable from this run:** hands-on play of the PBS reference (browser plugin-era title; not drivable here), live-kid discoverability tests, feel/pacing judgment. These are carried as user-only steps in EPIC_PLAN (benchmark-comparison polish story + playtest spike).
+**Explicitly not claimable from the original prototype run:** hands-on play of the PBS reference (browser plugin-era title; not drivable here), live-kid discoverability tests, and feel/pacing judgment. The later one-tester owner acceptance is recorded in `PLAYTEST_PROTOCOL.md`; it is a qualitative release signal and does not retroactively turn this prototype note into a population study.
 
 ## 5. GamineAI Builder workstreams — status
 

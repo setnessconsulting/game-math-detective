@@ -58,7 +58,7 @@ Labels: every issue carries `levelbest` + `game-math-detective`; epic additional
 
 ## 4. Quality bar self-review — 9 criteria vs *Odd Squad: Agent Check-Up*
 
-Evidence basis: prototype built and machine-tested this run (`PROTOTYPE_NOTES.md`), benchmark loop reconstructed from PBS KIDS/PBS LearningMedia/TCRF documentation. The reference game could **not** be played hands-on in this environment (browser-plugin-era web title; no interactive browser here) and no children were available for live tests — both are honestly deferred to MD-15 (`CONSULTING-230`) rather than claimed.
+Evidence basis: prototype built and machine-tested this run (`PROTOTYPE_NOTES.md`), benchmark loop reconstructed from PBS KIDS/PBS LearningMedia/TCRF documentation. The reference game could **not** be played hands-on in this environment (browser-plugin-era web title; no interactive browser here). The owner later reported one child tester played the hosted candidate and judged it good enough for production; structured timing and device fields were not captured, so no broad child-usability or pacing claim is made.
 
 | # | Criterion | Status vs reference | Evidence & notes |
 |---|---|---|---|

@@ -58,6 +58,7 @@ On 2026-09-20 the owner reported that one child tester played the hosted Math De
 
 1. Record the completed table when available, plus the pass-bar verdict, as a comment on CONSULTING-230.
 2. Map hesitations to fixes; remediate in-scope items and re-run the ladder (`typecheck && lint && test && build` + the Math Detective E2E suites).
-3. Only then mark MD-15 Done and update the Epic with the final implementation summary.
+3. After the owner records the one-tester outcome and the remaining release records are linked,
+   mark MD-15 Done and update the Epic with the final implementation summary.
 
 
