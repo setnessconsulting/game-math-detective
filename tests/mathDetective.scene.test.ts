@@ -36,6 +36,9 @@ describe("mathDetective scene contract (GAME-137)", () => {
       "closeChallenge",
       "openDeduction",
       "chooseSuspect",
+      "linkEvidence",
+      "requestHint",
+      "submitAnswer",
       "accuse",
       "continue",
       "presentationComplete",
@@ -133,6 +136,83 @@ describe("mathDetective scene contract (GAME-137)", () => {
       effect: { t: "presentationUnblocked", token: "clue-reveal-1" },
     });
     expect(begun.earnedIds).toEqual(before);
+  });
+
+  it("maps hint requests and numeric submissions only for the current clue", () => {
+    const { state, caseId } = start();
+    const begun = reduce(state, { t: "BEGIN" }, T).state;
+    const item = begun.run!.evidences[0]!;
+    const hint = resolveSceneIntent(
+      { t: "requestHint", evidenceId: item.id, level: 1, ...auth(caseId) },
+      { sessionId: SESSION, generation: 1, state: begun },
+    );
+    expect(hint).toEqual({
+      ok: true,
+      kind: "engine",
+      action: { t: "REQUEST_HINT", itemId: item.id, level: 1 },
+    });
+
+    const submit = resolveSceneIntent(
+      { t: "submitAnswer", evidenceId: item.id, value: item.answer.value, ...auth(caseId) },
+      { sessionId: SESSION, generation: 1, state: begun },
+    );
+    expect(submit).toEqual({
+      ok: true,
+      kind: "engine",
+      action: { t: "SUBMIT_ANSWER", itemId: item.id, value: item.answer.value },
+    });
+  });
+
+  it("rejects hint and answer intents after the current clue is solved", () => {
+    const { state, caseId } = start();
+    const begun = reduce(state, { t: "BEGIN" }, T).state;
+    const item = begun.run!.evidences[0]!;
+    const solved = reduce(
+      begun,
+      { t: "SUBMIT_ANSWER", itemId: item.id, value: item.answer.value },
+      T,
+    ).state;
+    expect(
+      resolveSceneIntent(
+        { t: "requestHint", evidenceId: item.id, level: 1, ...auth(caseId) },
+        { sessionId: SESSION, generation: 1, state: solved },
+      ),
+    ).toEqual({ ok: false, reason: "hint-after-solve" });
+    expect(
+      resolveSceneIntent(
+        { t: "submitAnswer", evidenceId: item.id, value: item.answer.value, ...auth(caseId) },
+        { sessionId: SESSION, generation: 1, state: solved },
+      ),
+    ).toEqual({ ok: false, reason: "answer-after-solve" });
+  });
+
+  it("maps earned board links to a bounded engine action", () => {
+    const { state, caseId } = start();
+    let board = reduce(state, { t: "BEGIN" }, T).state;
+
+    while (board.phase !== "board") {
+      const current = board.run!.evidences[board.current]!;
+      board = reduce(
+        board,
+        { t: "SUBMIT_ANSWER", itemId: current.id, value: current.answer.value },
+        T,
+      ).state;
+      if (board.phase === "evidence") {
+        board = reduce(board, { t: "ADVANCE" }, T).state;
+      }
+    }
+
+    const suspectId = board.run!.suspects[0]!.id;
+    const constraintId = board.earnedIds[0]!;
+    const resolved = resolveSceneIntent(
+      { t: "linkEvidence", suspectId, constraintId, ...auth(caseId) },
+      { sessionId: SESSION, generation: 1, state: board },
+    );
+    expect(resolved).toEqual({
+      ok: true,
+      kind: "engine",
+      action: { t: "TOGGLE_LINK", suspectId, constraintId },
+    });
   });
 
   it("restores focus to a named world station after overlay close", () => {

@@ -2,7 +2,8 @@
  * Minimal Phaser 4 boot for Math Detective (GAME-138).
  *
  * Dynamically imports `phaser` so SSR / node Vitest never load the canvas
- * runtime. Production wiring into MathDetective.tsx is deferred to GAME-139.
+ * runtime. The GAME-139 shell mounts this runtime as the live world surface;
+ * the engine and HTML controls remain authoritative for all case decisions.
  */
 import type { SceneModel } from "../scene";
 import type { PhaserRuntime } from "./hostAdapter";
@@ -64,11 +65,19 @@ export async function createPhaserRuntime(
 
     create() {
       this.add
-        .text(16, 16, "Math Detective (Phaser foundation)", {
+        .text(16, 16, "CASE DESK · LIVE WORLD", {
           fontFamily: "sans-serif",
-          fontSize: "16px",
-          color: "#e8eef7",
+          fontSize: "15px",
+          color: "#f5c451",
         })
+        .setOrigin(0, 0);
+      this.add
+        .text(16, 92, "EVIDENCE STATIONS", {
+          fontFamily: "sans-serif",
+          fontSize: "11px",
+          color: "#9db0c7",
+        })
+        .setName("md-station-heading")
         .setOrigin(0, 0);
       this.drawModel(latest);
     }
@@ -105,11 +114,64 @@ export async function createPhaserRuntime(
           | null;
         if (prior?.setFillStyle) {
           prior.setFillStyle(color);
-          return;
+        } else {
+          prior?.destroy?.();
+          this.add.rectangle(48 + i * 56, 120, 40, 40, color).setName(name);
         }
-        prior?.destroy?.();
-        this.add.rectangle(48 + i * 56, 120, 40, 40, color).setName(name);
+        const stationTextName = `${name}-label`;
+        const stationLabel = station.skillId.slice(0, 5).toUpperCase();
+        const priorLabel = this.children.getByName(stationTextName) as
+          | { setText: (text: string) => void }
+          | null;
+        if (priorLabel) {
+          priorLabel.setText(stationLabel);
+        } else {
+          this.add
+            .text(48 + i * 56, 168, stationLabel, {
+              fontFamily: "sans-serif",
+              fontSize: "8px",
+              color: "#d7e3f0",
+            })
+            .setName(stationTextName)
+            .setOrigin(0, 0);
+        }
       });
+
+      const suspectText = scene.suspects
+        .map((suspect) => `${suspect.status === "eliminated" ? "×" : "•"} ${suspect.name}`)
+        .join("   ");
+      const suspects = this.children.getByName("md-suspects") as
+        | { setText: (text: string) => void }
+        | null;
+      if (suspects) {
+        suspects.setText(suspectText);
+      } else {
+        this.add
+          .text(16, 220, suspectText, {
+            fontFamily: "sans-serif",
+            fontSize: "11px",
+            color: "#d7e3f0",
+          })
+          .setName("md-suspects")
+          .setOrigin(0, 0);
+      }
+
+      const clueText = `CLUES EARNED  ${scene.deduction.chips.length} / ${scene.stations.length}`;
+      const clues = this.children.getByName("md-clues") as
+        | { setText: (text: string) => void }
+        | null;
+      if (clues) {
+        clues.setText(clueText);
+      } else {
+        this.add
+          .text(16, 272, clueText, {
+            fontFamily: "sans-serif",
+            fontSize: "11px",
+            color: "#7fe0b5",
+          })
+          .setName("md-clues")
+          .setOrigin(0, 0);
+      }
     }
   }
 
