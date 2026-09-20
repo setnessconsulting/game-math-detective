@@ -14,6 +14,13 @@ import { generateCase, TIERS } from "@/lib/mathDetective/solver";
 import { initialTier } from "@/lib/mathDetective/adaptivity";
 import { projectScene } from "@/lib/mathDetective/scene";
 import type { LayoutMode, SceneIntent, SceneModel } from "@/lib/mathDetective/scene";
+import {
+  agencyFraming,
+  beginAgencyCase,
+  closeAgencyCase,
+  getAgencyProgress,
+  type AgencyProgress,
+} from "@/lib/mathDetective/agency";
 import type {
   CaseMode,
   DifficultyTier,
@@ -159,6 +166,7 @@ export default function MathDetective() {
     detectLayoutMode(typeof window === "undefined" ? 1200 : window.innerWidth),
   );
   const [scene, setScene] = useState<SceneModel>(initialScene);
+  const [agencyProgress, setAgencyProgress] = useState<AgencyProgress>(() => getAgencyProgress());
   const [hostReady, setHostReady] = useState(false);
   const [answer, setAnswer] = useState("");
   const [selectedSuspect, setSelectedSuspect] = useState<string | null>(null);
@@ -179,6 +187,8 @@ export default function MathDetective() {
   const revealRef = useRef<HTMLButtonElement>(null);
   const soundEnabledRef = useRef(soundEnabled);
   const presentationRef = useRef({ layoutMode, reducedMotion, captionsEnabled });
+  const agencyStartedCaseRef = useRef<string | null>(null);
+  const agencyClosedCaseRef = useRef<string | null>(null);
 
   useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
 
@@ -193,6 +203,18 @@ export default function MathDetective() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    if (agencyStartedCaseRef.current === run.caseId) return;
+    agencyStartedCaseRef.current = run.caseId;
+    setAgencyProgress(beginAgencyCase(run.caseId, run.narrative.settingId));
+  }, [run]);
+
+  useEffect(() => {
+    if (scene.outcome !== "closed" || !scene.caseId || agencyClosedCaseRef.current === scene.caseId) return;
+    agencyClosedCaseRef.current = scene.caseId;
+    setAgencyProgress(closeAgencyCase(scene.caseId));
+  }, [scene.caseId, scene.outcome]);
 
   useEffect(() => {
     const parent = phaserParentRef.current;
@@ -372,5 +394,5 @@ export default function MathDetective() {
     return renderSummary();
   };
 
-  return <main className={`md-shell ${reducedMotion ? "md-reduced-motion" : ""}`} data-captions={captionsEnabled ? "on" : "off"}><header className="md-header"><div className="md-header-topline"><p className="md-eyebrow">MATH DETECTIVE · CASE DESK</p><div className="md-settings" role="group" aria-label="Presentation settings"><button type="button" aria-pressed={reducedMotion} onClick={() => setReducedMotion((value) => !value)}>{reducedMotion ? "Motion: reduced" : "Motion: full"}</button><button type="button" aria-pressed={captionsEnabled} onClick={() => setCaptionsEnabled((value) => !value)}>{captionsEnabled ? "Captions: on" : "Captions: off"}</button><button type="button" aria-pressed={soundEnabled} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? "Sound: on" : "Sound: off"}</button></div></div><h1>Math Detective</h1><p className="md-lede">{run.title}. Follow the clues, solve the math, and crack the case.</p></header><div className="md-case-layout"><section className="md-panel md-case-panel" aria-labelledby="case-title"><div className="md-case-bar"><span className="md-phase" data-testid="game-phase">{scene.casePhase}</span><span className="md-tier-badge">{TIER_META[run.tier].rank} · {caseMode === "mini" ? "Quick Case" : "Full Case"}</span></div><h2 id="case-title">{run.title}</h2>{renderPhase()}<p className="md-notice" role="status" aria-live="polite">{captionsEnabled ? notice : ""}</p></section><aside className="md-panel md-world-panel" aria-labelledby="phaser-title"><div className="md-world-heading"><div><div className="md-section-kicker">Live presentation</div><h2 id="phaser-title">Investigation map</h2></div><span className="md-live-dot" role="img" aria-label="Phaser live" /></div><p className="md-muted">The world surface shows the case state. Math controls and clues stay readable in HTML.</p><div ref={phaserParentRef} className="md-phaser" data-testid="phaser-surface" /><div className="md-world-legend" role="group" aria-label="Map legend"><span><i className="md-legend-dot md-legend-current" />current</span><span><i className="md-legend-dot md-legend-done" />earned</span><span><i className="md-legend-dot md-legend-open" />not opened</span></div></aside></div></main>;
+  return <main className={`md-shell ${reducedMotion ? "md-reduced-motion" : ""}`} data-captions={captionsEnabled ? "on" : "off"}><header className="md-header"><div className="md-header-topline"><p className="md-eyebrow">MATH DETECTIVE · CASE DESK</p><div className="md-settings" role="group" aria-label="Presentation settings"><button type="button" aria-pressed={reducedMotion} onClick={() => setReducedMotion((value) => !value)}>{reducedMotion ? "Motion: reduced" : "Motion: full"}</button><button type="button" aria-pressed={captionsEnabled} onClick={() => setCaptionsEnabled((value) => !value)}>{captionsEnabled ? "Captions: on" : "Captions: off"}</button><button type="button" aria-pressed={soundEnabled} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? "Sound: on" : "Sound: off"}</button></div></div><h1>Math Detective</h1><p className="md-lede">{run.title}. Follow the clues, solve the math, and crack the case.</p><p className="md-muted" data-testid="agency-framing">{agencyFraming(agencyProgress)}</p></header><div className="md-case-layout"><section className="md-panel md-case-panel" aria-labelledby="case-title"><div className="md-case-bar"><span className="md-phase" data-testid="game-phase">{scene.casePhase}</span><span className="md-tier-badge">{TIER_META[run.tier].rank} · {caseMode === "mini" ? "Quick Case" : "Full Case"}</span></div><h2 id="case-title">{run.title}</h2>{renderPhase()}<p className="md-notice" role="status" aria-live="polite">{captionsEnabled ? notice : ""}</p></section><aside className="md-panel md-world-panel" aria-labelledby="phaser-title"><div className="md-world-heading"><div><div className="md-section-kicker">Live presentation</div><h2 id="phaser-title">Investigation map</h2></div><span className="md-live-dot" role="img" aria-label="Phaser live" /></div><p className="md-muted">The world surface shows the case state. Math controls and clues stay readable in HTML.</p><div ref={phaserParentRef} className="md-phaser" data-testid="phaser-surface" /><div className="md-world-legend" role="group" aria-label="Map legend"><span><i className="md-legend-dot md-legend-current" />current</span><span><i className="md-legend-dot md-legend-done" />earned</span><span><i className="md-legend-dot md-legend-open" />not opened</span></div></aside></div></main>;
 }

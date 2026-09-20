@@ -30,6 +30,7 @@ test("plays the deterministic quick case through the deduction board", async ({ 
   ).toBeVisible();
   await expect(page.getByTestId("phaser-surface").locator("canvas")).toHaveCount(1);
   await expect(page.getByTestId("game-phase")).toHaveText("briefing");
+  await expect(page.getByTestId("agency-framing")).toHaveText("Agency file · case 1 · 0 closed");
 
   await page.getByRole("button", { name: "Begin case" }).click();
   await expect(page.getByTestId("game-phase")).toHaveText("evidence");
@@ -53,6 +54,7 @@ test("plays the deterministic quick case through the deduction board", async ({ 
   await page.getByTestId("accuse").click();
   await page.getByRole("dialog", { name: /Name / }).getByRole("button", { name: "Confirm accusation" }).click();
   await expect(page.getByRole("heading", { name: "Case closed" })).toBeVisible();
+  await expect(page.getByTestId("agency-framing")).toHaveText("Agency file · case 1 · 1 closed");
   await page.getByRole("button", { name: "Open case summary" }).click();
   await expect(page.getByRole("heading", { name: "A sharp investigation" })).toBeVisible();
 });
