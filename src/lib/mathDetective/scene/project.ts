@@ -40,7 +40,15 @@ function locationFor(phase: EngineState["phase"], overlay: OverlayKind): SceneLo
 function defaultPresentationPhase(
   state: EngineState,
   overlay: OverlayKind,
+  pendingPresentationComplete: boolean,
 ): PresentationPhase {
+  if (
+    pendingPresentationComplete &&
+    state.phase === "evidence" &&
+    state.slots[state.current]?.solved
+  ) {
+    return "clueDiscovery";
+  }
   if (overlay === "challenge") return "challengeOpen";
   if (overlay === "result") return "challengeResult";
   switch (state.phase) {
@@ -110,9 +118,80 @@ function suspectStatus(state: EngineState, suspectId: string): SuspectPresentati
   return "alive";
 }
 
+function worldTransitionFor(
+  state: EngineState,
+  pendingPresentationComplete: boolean,
+  reducedMotion: boolean,
+  captionsEnabled: boolean,
+): SceneModel["world"]["transition"] {
+  let kind: SceneModel["world"]["transition"]["kind"] = "none";
+  if (pendingPresentationComplete && state.phase === "evidence") {
+    kind = "clueDiscovery";
+  } else {
+    switch (state.phase) {
+      case "briefing":
+        kind = "caseEntry";
+        break;
+      case "evidence":
+        kind = state.slots[state.current]?.solved ? "stationComplete" : "stationFocus";
+        break;
+      case "checkpoint":
+      case "board":
+        kind = "suspectUpdate";
+        break;
+      case "guided":
+        kind = "wrongAccusationRecovery";
+        break;
+      case "verdict":
+        kind = "verdict";
+        break;
+      case "summary":
+        kind = "summary";
+        break;
+      default:
+        kind = "none";
+    }
+  }
+
+  return {
+    kind,
+    durationMs: reducedMotion || kind === "none" ? 0 : kind === "clueDiscovery" ? 520 : 260,
+    reducedMotion,
+    captionsEnabled,
+  };
+}
+
+function worldFeedbackFor(
+  state: EngineState,
+  pendingPresentationComplete: boolean,
+  currentStation: SceneStation | null,
+): SceneModel["world"]["environmentalFeedback"] {
+  if (pendingPresentationComplete) {
+    return { state: "clue", label: "Clue discovery ready" };
+  }
+  if (state.phase === "briefing") {
+    return { state: "briefing", label: "Briefing ready" };
+  }
+  if (state.phase === "board" || state.phase === "checkpoint") {
+    return { state: "board", label: "Suspect board updated" };
+  }
+  if (state.phase === "guided" || (state.phase === "verdict" && state.outcome === null)) {
+    return { state: "recovery", label: "Review the evidence" };
+  }
+  if (state.phase === "verdict" || state.phase === "summary") {
+    return { state: "closed", label: "Case file closed" };
+  }
+  if (currentStation?.status === "completed") {
+    return { state: "clue", label: "Evidence solved" };
+  }
+  return { state: "station", label: "Evidence station ready" };
+}
+
 export function projectScene(state: EngineState, options: SceneProjectOptions): SceneModel {
   const overlay = options.overlay ?? "none";
   const run = state.run;
+  const currentSlot = state.slots[state.current] ?? null;
+  const pendingClueDiscovery = Boolean(options.pendingPresentationComplete && currentSlot?.solved);
   const stations: SceneStation[] =
     run?.evidences.map((ev, index) => {
       const status = stationStatus(state, index, options.highlightedStationId);
@@ -138,7 +217,6 @@ export function projectScene(state: EngineState, options: SceneProjectOptions): 
     })) ?? [];
 
   const currentEv = run?.evidences[state.current] ?? null;
-  const currentSlot = state.slots[state.current] ?? null;
   const minLinks = run ? tierRequiresLinks(run.tier) : 0;
   const linkCount = Object.keys(state.links).length;
 
@@ -152,9 +230,21 @@ export function projectScene(state: EngineState, options: SceneProjectOptions): 
       })) ?? [];
 
   const presentationPhase =
-    options.presentationPhase ?? defaultPresentationPhase(state, overlay);
+    options.presentationPhase ??
+    defaultPresentationPhase(state, overlay, pendingClueDiscovery);
   const focusTarget =
     options.focusTarget ?? defaultFocus(state, overlay, options.highlightedStationId);
+  const currentStation = stations.find((station) => station.evidenceId === currentEv?.id) ?? null;
+  const clueDiscoveryState = pendingClueDiscovery
+    ? "discovering"
+    : currentSlot?.solved
+      ? "revealed"
+      : "hidden";
+  const chapterCurrent = run
+    ? state.phase === "briefing"
+      ? 0
+      : Math.min(state.current + 1, stations.length)
+    : 0;
 
   return {
     contractVersion: 1,
@@ -196,6 +286,36 @@ export function projectScene(state: EngineState, options: SceneProjectOptions): 
       reducedMotion: options.reducedMotion ?? false,
       captionsEnabled: options.captionsEnabled ?? true,
       pendingPresentationComplete: options.pendingPresentationComplete ?? false,
+    },
+    world: {
+      setting: {
+        id: "detective-office",
+        label: "Detective office",
+      },
+      chapter: {
+        current: chapterCurrent,
+        total: stations.length,
+        label:
+          chapterCurrent === 0
+            ? "Case setup"
+            : `Station ${chapterCurrent} of ${stations.length}`,
+      },
+      stations,
+      suspects,
+      clueDiscovery: {
+        state: clueDiscoveryState,
+        evidenceId: clueDiscoveryState === "hidden" ? null : currentEv?.id ?? null,
+        chip: clueDiscoveryState === "hidden" ? null : currentEv?.constraint.chip ?? null,
+        sentence:
+          clueDiscoveryState === "hidden" ? null : currentEv?.constraint.sentence ?? null,
+      },
+      environmentalFeedback: worldFeedbackFor(state, pendingClueDiscovery, currentStation),
+      transition: worldTransitionFor(
+        state,
+        pendingClueDiscovery,
+        options.reducedMotion ?? false,
+        options.captionsEnabled ?? true,
+      ),
     },
   };
 }

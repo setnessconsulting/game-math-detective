@@ -287,6 +287,35 @@ describe("mathDetective Phaser host adapter (GAME-138)", () => {
     expect(isDeterministicFocusTarget(close.to)).toBe(true);
     state.destroy();
   });
+
+  it("changes responsive presentation without resetting engine state or generation", () => {
+    const runtime = createFakePhaserRuntime();
+    const adapter = createMathDetectiveHostAdapter({
+      sessionId: SESSION,
+      runtime,
+      now: () => NOW,
+      layoutMode: "desktop",
+      parent: {} as HTMLElement,
+    });
+    const run = generateCase({ seed: 42, tier: "D3", mode: "mini" });
+    adapter.startCase(run);
+    const generation = adapter.generation;
+    const before = adapter.getState();
+
+    adapter.setPresentationOptions({
+      layoutMode: "phonePortrait",
+      reducedMotion: true,
+      captionsEnabled: false,
+    });
+
+    expect(adapter.generation).toBe(generation);
+    expect(adapter.getState()).toBe(before);
+    expect(adapter.getScene().layoutMode).toBe("phonePortrait");
+    expect(adapter.getScene().animation.reducedMotion).toBe(true);
+    expect(adapter.getScene().animation.captionsEnabled).toBe(false);
+    expect(runtime.lastScene?.world.setting.id).toBe("detective-office");
+    adapter.destroy();
+  });
 });
 
 

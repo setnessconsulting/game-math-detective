@@ -420,6 +420,35 @@ h1 {
   gap: 0.65rem;
 }
 
+.md-rank-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.md-rank-picker button {
+  display: grid;
+  gap: 0.15rem;
+  min-height: 52px;
+  border-color: #4d7098;
+  padding: 0.45rem 0.6rem;
+  color: #d8e7fa;
+  background: rgba(31, 61, 94, 0.55);
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.md-rank-picker button[aria-pressed="true"] {
+  border-color: var(--md-gold);
+  color: #15253b;
+  background: var(--md-gold);
+}
+
+.md-rank-picker small {
+  color: inherit;
+  font-size: 0.7rem;
+}
+
 .md-mode-picker button {
   display: grid;
   gap: 0.2rem;

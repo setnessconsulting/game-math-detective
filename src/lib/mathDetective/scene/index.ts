@@ -4,6 +4,7 @@ export type {
   OverlayKind,
   PresentationPhase,
   SceneAnimationMeta,
+  SceneClueDiscoveryState,
   SceneCluePresentation,
   SceneDeduction,
   SceneLocation,
@@ -13,6 +14,12 @@ export type {
   SceneSuspect,
   StationStatus,
   SuspectPresentationStatus,
+  SceneWorld,
+  SceneWorldChapter,
+  SceneWorldFeedback,
+  SceneWorldSetting,
+  SceneWorldTransition,
+  SceneWorldTransitionKind,
 } from "./types";
 
 export {
