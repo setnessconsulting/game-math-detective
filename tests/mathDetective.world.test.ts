@@ -16,7 +16,11 @@ describe("mathDetective reusable world projection (GAME-140)", () => {
       layoutMode: "desktop",
     });
 
-    expect(briefing.world.setting).toEqual({ id: "detective-office", label: "Detective office" });
+    expect(briefing.world.setting).toEqual({
+      id: run.narrative.settingId,
+      label: run.narrative.settingLabel,
+      objectFamilies: [...new Set(Object.values(run.narrative.stationFamilies))],
+    });
     expect(briefing.world.chapter).toEqual({ current: 0, total: run.evidences.length, label: "Case setup" });
     expect(briefing.world.stations.map((station) => station.evidenceId)).toEqual(
       run.evidences.map((evidence) => evidence.id),
@@ -24,6 +28,8 @@ describe("mathDetective reusable world projection (GAME-140)", () => {
     expect(briefing.world.suspects.map((suspect) => suspect.id)).toEqual(
       run.suspects.map((suspect) => suspect.id),
     );
+    expect(briefing.world.stations.every((station) => station.objectFamily)).toBe(true);
+    expect(briefing.narrative).toEqual(run.narrative);
     expect(briefing.world.clueDiscovery.state).toBe("hidden");
     expect("culpritId" in briefing.world).toBe(false);
     expect("test" in briefing.world).toBe(false);

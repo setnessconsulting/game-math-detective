@@ -27,7 +27,7 @@ GAME-173 owns the future production Figma source of truth. Until that story supp
 
 `SceneModel` exposes case/evidence/suspect/deduction data needed for rendering, but it does not expose solver predicates or a second correctness reducer. The renderer cannot derive the culprit, earn a clue, eliminate a suspect, award points, or settle a verdict.
 
-The `SceneModel.world` projection is the reusable GAME-140 world boundary. It carries the typed detective-office setting, chapter/station roster, engine-derived suspect statuses, clue-discovery state, environmental feedback, and transition metadata. `src/lib/mathDetective/phaser/worldView.ts` consumes this object only; it has no reducer, generator, answer, or constraint imports. The current `detective-office` setting id is an implementation fallback until GAME-245 supplies the authored setting/content adapter, and is not a claim of final world art.
+The `SceneModel.world` projection is the reusable GAME-140 world boundary. It carries the typed authored GAME-245 setting, object-family labels, chapter/station roster, engine-derived suspect statuses, clue-discovery state, environmental feedback, and transition metadata. A pre-case scene uses the `detective-office` fallback. `src/lib/mathDetective/phaser/worldView.ts` consumes this object only; it has no reducer, generator, answer, or constraint imports. Authored narrative remains display-only and never changes the case truth.
 
 ## Ownership
 

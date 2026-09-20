@@ -25,6 +25,57 @@ export type SkillId =
 
 export type CaseMode = "mini" | "full";
 
+/**
+ * Authored settings are content identities, not rendering implementations.
+ * The detective-office value remains available for an empty presentation
+ * scene before a case has started.
+ */
+export type CaseSettingId =
+  | "library-archive"
+  | "community-garden"
+  | "makers-market"
+  | "sky-observatory"
+  | "detective-office";
+
+export interface NarrativeProvenance {
+  source: "original-authored";
+  owner: "Math Detective content bank";
+  reviewed: false;
+}
+
+export interface AuthoredText {
+  text: string;
+  provenance: NarrativeProvenance;
+}
+
+export interface CaseSetting {
+  id: Exclude<CaseSettingId, "detective-office">;
+  label: string;
+  description: AuthoredText;
+  compatibleTiers: readonly DifficultyTier[];
+  compatibleSkills: readonly SkillId[];
+  /** One drawable object family for every currently shipped skill. */
+  stationFamilies: Readonly<Record<SkillId, string>>;
+  objectFamilies: readonly string[];
+  provenance: NarrativeProvenance;
+}
+
+export interface CaseNarrative {
+  settingId: Exclude<CaseSettingId, "detective-office">;
+  settingLabel: string;
+  settingDescription: AuthoredText;
+  stationFamilies: Readonly<Record<SkillId, string>>;
+  briefing: AuthoredText;
+  suspectIntroductions: Readonly<Record<string, AuthoredText>>;
+  cluePhrases: Readonly<Record<string, AuthoredText>>;
+  chapterBeats: readonly AuthoredText[];
+  eliminationLines: Readonly<Record<string, AuthoredText>>;
+  verdict: {
+    closed: AuthoredText;
+    recovery: AuthoredText;
+  };
+}
+
 /** Placement third reused conceptually from assessment (early/mid/late). */
 export type Third = "early" | "mid" | "late";
 
@@ -173,6 +224,8 @@ export interface CaseRun {
   caseId: string;
   title: string;
   intro: string;
+  /** Display-only authored framing; solver truth remains in the fields below. */
+  narrative: CaseNarrative;
   tier: DifficultyTier;
   mode: CaseMode;
   suspects: Suspect[];

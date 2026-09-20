@@ -313,7 +313,7 @@ describe("mathDetective Phaser host adapter (GAME-138)", () => {
     expect(adapter.getScene().layoutMode).toBe("phonePortrait");
     expect(adapter.getScene().animation.reducedMotion).toBe(true);
     expect(adapter.getScene().animation.captionsEnabled).toBe(false);
-    expect(runtime.lastScene?.world.setting.id).toBe("detective-office");
+    expect(runtime.lastScene?.world.setting.id).toBe(run.narrative.settingId);
     adapter.destroy();
   });
 });

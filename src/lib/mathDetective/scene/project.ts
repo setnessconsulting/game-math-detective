@@ -203,6 +203,7 @@ export function projectScene(state: EngineState, options: SceneProjectOptions): 
         status,
         goal: ev.goal,
         presentationKind: ev.presentation.kind,
+        objectFamily: run?.narrative.stationFamilies[ev.skillId] ?? null,
         earnedChip: earned ? ev.constraint.chip : null,
       };
     }) ?? [];
@@ -279,6 +280,7 @@ export function projectScene(state: EngineState, options: SceneProjectOptions): 
     layoutMode: options.layoutMode ?? "desktop",
     title: run?.title ?? null,
     intro: run?.intro ?? null,
+    narrative: run?.narrative ?? null,
     outcome: state.outcome,
     rejection: state.rejection,
     animation: {
@@ -289,8 +291,11 @@ export function projectScene(state: EngineState, options: SceneProjectOptions): 
     },
     world: {
       setting: {
-        id: "detective-office",
-        label: "Detective office",
+        id: run?.narrative.settingId ?? "detective-office",
+        label: run?.narrative.settingLabel ?? "Detective office",
+        objectFamilies: run
+          ? [...new Set(Object.values(run.narrative.stationFamilies))]
+          : ["office"],
       },
       chapter: {
         current: chapterCurrent,
