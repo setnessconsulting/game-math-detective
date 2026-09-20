@@ -24,6 +24,21 @@ export type SceneIntent =
   | (SceneIntentAuth & { t: "closeChallenge" })
   | (SceneIntentAuth & { t: "openDeduction" })
   | (SceneIntentAuth & { t: "chooseSuspect"; suspectId: string })
+  | (SceneIntentAuth & {
+      t: "linkEvidence";
+      suspectId: string;
+      constraintId: string;
+    })
+  | (SceneIntentAuth & {
+      t: "requestHint";
+      evidenceId: string;
+      level: 1 | 2 | 3 | 4;
+    })
+  | (SceneIntentAuth & {
+      t: "submitAnswer";
+      evidenceId: string;
+      value: number;
+    })
   | (SceneIntentAuth & { t: "accuse"; suspectId: string; linkedCount: number })
   | (SceneIntentAuth & { t: "continue" })
   | (SceneIntentAuth & { t: "presentationComplete"; token: string });
@@ -56,6 +71,9 @@ export function isSceneIntentName(value: string): value is SceneIntentName {
     value === "closeChallenge" ||
     value === "openDeduction" ||
     value === "chooseSuspect" ||
+    value === "linkEvidence" ||
+    value === "requestHint" ||
+    value === "submitAnswer" ||
     value === "accuse" ||
     value === "continue" ||
     value === "presentationComplete"
@@ -156,6 +174,76 @@ export function resolveSceneIntent(intent: SceneIntent, ctx: IntentContext): Int
         ok: true,
         kind: "presentation",
         effect: { t: "selectSuspect", suspectId: intent.suspectId },
+      };
+    }
+
+    case "linkEvidence": {
+      if (ctx.state.phase !== "board") {
+        return { ok: false, reason: "link-phase" };
+      }
+      const suspectExists = ctx.state.run?.suspects.some(
+        (suspect) => suspect.id === intent.suspectId,
+      );
+      if (!suspectExists) return { ok: false, reason: "unknown-suspect" };
+      const earned = ctx.state.run?.evidences.some(
+        (evidence) =>
+          evidence.id === intent.constraintId &&
+          ctx.state.earnedIds.includes(evidence.id),
+      );
+      if (!earned) return { ok: false, reason: "unearned-evidence" };
+      return {
+        ok: true,
+        kind: "engine",
+        action: {
+          t: "TOGGLE_LINK",
+          suspectId: intent.suspectId,
+          constraintId: intent.constraintId,
+        },
+      };
+    }
+
+    case "requestHint": {
+      if (ctx.state.phase !== "evidence") {
+        return { ok: false, reason: "hint-phase" };
+      }
+      const current = ctx.state.run?.evidences[ctx.state.current];
+      const slot = ctx.state.slots[ctx.state.current];
+      if (!current || current.id !== intent.evidenceId || !slot) {
+        return { ok: false, reason: "hint-not-current" };
+      }
+      if (slot.solved) return { ok: false, reason: "hint-after-solve" };
+      if (slot.hintsUsed.includes(intent.level)) {
+        return { ok: false, reason: "hint-already-used" };
+      }
+      return {
+        ok: true,
+        kind: "engine",
+        action: {
+          t: "REQUEST_HINT",
+          itemId: intent.evidenceId,
+          level: intent.level,
+        },
+      };
+    }
+
+    case "submitAnswer": {
+      if (ctx.state.phase !== "evidence") {
+        return { ok: false, reason: "answer-phase" };
+      }
+      const current = ctx.state.run?.evidences[ctx.state.current];
+      const slot = ctx.state.slots[ctx.state.current];
+      if (!current || current.id !== intent.evidenceId || !slot) {
+        return { ok: false, reason: "answer-not-current" };
+      }
+      if (slot.solved) return { ok: false, reason: "answer-after-solve" };
+      return {
+        ok: true,
+        kind: "engine",
+        action: {
+          t: "SUBMIT_ANSWER",
+          itemId: intent.evidenceId,
+          value: intent.value,
+        },
       };
     }
 

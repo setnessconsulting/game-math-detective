@@ -126,7 +126,44 @@ export type EngineAction =
 export type Effect =
   | { kind: "telemetry"; event: import("@/lib/games/shared/telemetry").MdEvent }
   | { kind: "announce"; text: string }
+  | {
+      kind: "feedback";
+      itemId: string;
+      correct: boolean;
+      submittedValue: number;
+      misconceptionTag: string;
+      text: string;
+    }
   | { kind: "cue"; name: "ok" | "no" | "win" };
+
+const FEEDBACK_GUIDANCE: Record<string, string> = {
+  "ruler-read": "Check the endpoint and count the small marks between labels.",
+  "elapsed-time": "Read both clocks, then count forward in five-minute steps.",
+  "table-missing-cell": "Add the visible rows and compare them with the total.",
+  "receipt-total": "Multiply each price by its quantity, then add the lines.",
+  "fraction-of-set": "Split the whole into equal groups before taking the numerator.",
+  "coordinate-read": "Read the row first, then the column, to build the square number.",
+  "expression-evaluate": "Follow the operation symbols in the code from left to right.",
+  "recipe-scale": "Find the amount for one serving, then scale to the new servings.",
+  "median-find": "Order the readings before choosing the middle value.",
+  "compound-outcomes": "Count the equally likely outcomes for every coin flip.",
+};
+
+export function wrongAnswerFeedback(item: GeneratedEvidence, submittedValue: number): {
+  misconceptionTag: string;
+  text: string;
+} {
+  const shown = Number.isInteger(submittedValue)
+    ? String(submittedValue)
+    : submittedValue.toFixed(2);
+  const guidance =
+    FEEDBACK_GUIDANCE[item.misconceptionTag] ??
+    "Look closely at the evidence and choose the operation it asks for.";
+  return {
+    misconceptionTag: item.misconceptionTag,
+    text: `You entered ${shown}. ${guidance}`,
+  };
+}
 
 function attrsById(run: CaseRun): Map<string, SuspectAttrs> {
   return new Map(run.suspects.map((s) => [s.id, s.attrs]));
@@ -243,6 +280,14 @@ export function reduce(
           latencyBucket: latencyBucketMs(action.latencyMs ?? 0),
           misconceptionTag: item.misconceptionTag,
         });
+        const feedback = wrongAnswerFeedback(item, action.value);
+        effects.push({
+          kind: "feedback",
+          itemId: item.id,
+          correct: false,
+          submittedValue: action.value,
+          ...feedback,
+        });
         return { state: { ...state, slots, rejection: null }, effects };
       }
 
@@ -269,6 +314,14 @@ export function reduce(
         misconceptionTag: item.misconceptionTag,
       });
       say(`Clue earned. ${item.constraint.sentence} Plus ${points} points.`);
+      effects.push({
+        kind: "feedback",
+        itemId: item.id,
+        correct: true,
+        submittedValue: action.value,
+        misconceptionTag: item.misconceptionTag,
+        text: `Clue earned: ${item.constraint.sentence}`,
+      });
       effects.push({ kind: "cue", name: "ok" });
       return {
         state: { ...state, slots, aliveIds, earnedIds, streak, rejection: null },

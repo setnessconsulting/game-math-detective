@@ -17,6 +17,8 @@ test("initial and evidence states remain keyboard and axe accessible", async ({ 
   await begin.focus();
   await begin.press("Enter");
   await expect(page.getByTestId("game-phase")).toHaveText("evidence");
+  await page.getByTestId("inspect-station").click();
+  await page.getByTestId("open-challenge").click();
   await expect(page.getByRole("spinbutton", { name: "Numeric answer" })).toBeFocused();
   await expectAccessible(page);
 });

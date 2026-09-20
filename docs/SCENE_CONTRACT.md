@@ -29,15 +29,15 @@ GAME-173 owns the future production Figma source of truth. Until that story supp
 
 ## Ownership
 
-React/DOM owns semantic and assistive interaction: briefing copy, numeric forms, tables, keypads, selectors, equations, challenge feedback, pause/settings controls, captions, and focus traps. Phaser owns world/station markers, clue motion, suspect/deduction presentation, accusation/verdict staging, and responsive visual layout. Both consume the projection; neither owns case truth.
+React/DOM owns semantic and assistive interaction: briefing copy, numeric forms, tables, keypads, selectors, equations, challenge feedback, deduction links, accusation/verdict controls, pause/settings controls, captions, and focus traps. Phaser owns the live world surface, station markers, clue motion, and responsive visual presentation. Both consume the projection; neither owns case truth.
 
 ## Bounded intents
 
 Every renderer-originated intent carries `sessionId`, `generation`, and `caseId`. The allowed set is:
 
-`enterStation`, `inspectEvidence`, `openChallenge`, `closeChallenge`, `openDeduction`, `chooseSuspect`, `accuse`, `continue`, and `presentationComplete`.
+`enterStation`, `inspectEvidence`, `openChallenge`, `closeChallenge`, `openDeduction`, `chooseSuspect`, `linkEvidence`, `requestHint`, `submitAnswer`, `accuse`, `continue`, and `presentationComplete`.
 
-`resolveSceneIntent` rejects stale session/generation/case tokens, unknown evidence or suspects, illegal phases, unsolved continuation, solved challenge reopen, insufficient accusation links, and duplicate settled accusations. Engine dispositions are limited to existing `EngineAction` values. Presentation dispositions only change overlay/highlight/selection/unblocked presentation state.
+`resolveSceneIntent` rejects stale session/generation/case tokens, unknown evidence or suspects, unearned evidence links, illegal phases, unsolved continuation, solved challenge reopen, insufficient accusation links, and duplicate settled accusations. Engine dispositions are limited to existing `EngineAction` values. Presentation dispositions only change overlay/highlight/selection/unblocked presentation state.
 
 `presentationComplete` is deliberately presentation-only. It cannot earn evidence, advance the engine, alter suspect state, change scoring, or settle a verdict.
 
@@ -59,4 +59,4 @@ Every renderer-originated intent carries `sessionId`, `generation`, and `caseId`
 - `tests/mathDetective.phaserAdapter.test.ts` verifies the contract through the host boundary, including duplicate, stale, out-of-order, and settled-case rejection.
 - `tests/mathDetective.golden.test.ts` and `tests/mathDetective.integrity.test.ts` bind the scene boundary to deterministic engine fixtures.
 
-The complete foundation command is `npm run verify`. The production Figma handoff and authored world states remain GAME-173/GAME-139 scope; adding those artifacts must not change this authority boundary.
+The complete verification command is `npm run verify`. GAME-139 now wires this contract through a playable React/Phaser vertical slice; the production Figma handoff and authored world states remain GAME-173 scope. Adding those artifacts must not change this authority boundary.

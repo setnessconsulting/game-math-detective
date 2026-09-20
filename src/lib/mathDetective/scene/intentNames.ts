@@ -6,6 +6,9 @@ export type SceneIntentName =
   | "closeChallenge"
   | "openDeduction"
   | "chooseSuspect"
+  | "linkEvidence"
+  | "requestHint"
+  | "submitAnswer"
   | "accuse"
   | "continue"
   | "presentationComplete";
@@ -17,6 +20,9 @@ export const SCENE_INTENT_NAMES: readonly SceneIntentName[] = [
   "closeChallenge",
   "openDeduction",
   "chooseSuspect",
+  "linkEvidence",
+  "requestHint",
+  "submitAnswer",
   "accuse",
   "continue",
   "presentationComplete",
