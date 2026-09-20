@@ -24,7 +24,9 @@
 | R2-07 | Medium — benchmark P0 | Shell + generator | Benchmark gaps G1 (read-aloud) and G2 (constructed response) were still open, gated for release by `BENCHMARK_COMPARISON.md`. | G1: `speech.ts` + read-aloud toggle + per-goal/per-hint 🔊 buttons (omitted when TTS unsupported). G2: `tileEquation` presentation at D4/D5 + pure `tileEval.ts` evaluator + tile UI; multi-solution by design. | New unit + E2E coverage; gaps marked CLOSED |
 | R2-08 | Low — polish | Engine/hub | Streak chip (§6) absent; checkpoint telemetry used off-schema fields; case_completed lacked minutes-bucket + skills; hub blurb diverged from the locked copy; hub focus was lost to `<body>` on exit. | Streak tracking with silent reset (relaxed-hidden); §10-schema checkpoint events; completed-event fields; exact hub blurb + "≈2 min"; hub focus restoration to the origin card for all games. | Engine tests + hub E2E still green |
 
-Deferred scope from round 1 (§3 below) is unchanged.
+Deferred scope from round 1 (§3 below) remains a historical test log. The current release uses the
+single-tester qualitative policy recorded in `PLAYTEST_PROTOCOL.md`; the external shell hook and
+operational rollback rehearsal remain separate follow-up work.
 
 ---
 

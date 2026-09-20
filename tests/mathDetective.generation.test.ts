@@ -313,6 +313,8 @@ describe("mathDetective content rules", () => {
     expect(verifyCaseRun(fb).ok).toBe(true);
   });
 
+  // The assertion keeps the per-case p95 budget strict; the larger test timeout
+  // accommodates the 3,000 full-case sample run on slower Windows hosts.
   it("generation stays fast: p95 under 50 ms per case at every tier", () => {
     const budget = 50;
     for (const tier of TIERS) {
@@ -326,7 +328,7 @@ describe("mathDetective content rules", () => {
       const p95 = samples[Math.floor(samples.length * 0.95)]!;
       expect(p95, `${tier} p95 ${p95.toFixed(2)}ms`).toBeLessThan(budget);
     }
-  });
+  }, 90_000);
 });
 
 // Shared-rng sanity used by both NLJ and Math Detective (MD-01 parity).

@@ -26,7 +26,7 @@ The only normalization is closure omission in the serializable projection and fi
     npm test -- tests/mathDetective.golden.test.ts tests/mathDetective.engine.test.ts tests/mathDetective.integrity.test.ts
     npm test -- tests/mathDetective.phaserAdapter.test.ts tests/mathDetective.scene.test.ts
 
-The standalone tests are the executable parity record for GAME-298. GAME-136 remains a separately owned verification story and must be independently reverified against this repository.
+The standalone tests are the executable parity record for GAME-298 and the migrated GAME-136/137/138 foundation. The focused engine, scene-contract, and Phaser-adapter suites were re-run on 2026-09-20; they pass against this repository. Jira issue closure and any separate human sign-off remain owner-managed workflow steps rather than claims made by the test suite.
 
 The checked-in fixture material hashes are:
 

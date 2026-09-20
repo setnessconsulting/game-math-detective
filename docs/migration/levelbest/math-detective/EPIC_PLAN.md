@@ -188,7 +188,9 @@ MD-01 ─┬─> MD-02 ─────┬─────────────
 - Scorecard published for all 9 criteria with evidence links; every criterion ≥ reference or remediation loop completed and re-scored.
 - Discoverability protocol executed: one uncoached first-run completion, or an owner-recorded qualitative acceptance with any blocking hesitation mapped to a fix or follow-up.
 - Banned-pattern audit negative (no FOMO/loss/leaderboard patterns found in final build).
-**DoD:** quality-bar sign-off comment; GAMES_PLAN/STATUS doc updates reflecting ship state.
+**DoD:** quality-bar sign-off comment or owner release record; GAMES_PLAN/STATUS doc updates
+reflecting ship state. The owner release record is now captured in `PLAYTEST_PROTOCOL.md` and the
+downstream release record in `docs/RELEASE.md`.
 
 ---
 
