@@ -63,7 +63,7 @@ Evidence basis: prototype built and machine-tested this run (`PROTOTYPE_NOTES.md
 | # | Criterion | Status vs reference | Evidence & notes |
 |---|---|---|---|
 | 1 | Math-game integration | **Meets (design-proven)** — success *requires* the math: constraints exist only if items are solved; deduction board consumes earned chips | Prototype uniqueness solver enforces evidence-dependence (8/8 tests); reference uses tool-readings to decide diagnosis — same information-as-evidence structure |
-| 2 | Child discoverability | **Modeled, unproven live** — icon-first chips, one-decision screens, calibration case, ≤12-word D1 copy; adult-free protocol defined (n≥8) | UX §3 task-model walkthrough done; live-kid validation deliberately deferred to MD-15 |
+| 2 | Child discoverability | **Modeled, with one live owner-reported check** — icon-first chips, one-decision screens, calibration case, ≤12-word D1 copy; single-tester adult-free protocol defined | UX §3 task-model walkthrough done; one child tester's qualitative acceptance is recorded in `PLAYTEST_PROTOCOL.md`; no population-level claim is made |
 | 3 | Feedback quality | **Meets (spec + prototype)** — <150 ms acks, visible consequences (chip fly, suspect dim), contradiction view instead of "wrong" buzzers | Prototype implements; reference praised for immediate tool reactions — parity targeted structurally |
 | 4 | Pacing | **Meets by design** — mini arc ≈90–150 s, full ≈5 min, chapter exits clean; reference's diagnose→treat cadence matched per-station | Timing targets instrumented in telemetry; human timing unverified until playtest |
 | 5 | Visual communication | **Meets (spec)** — quantities visible (rulers/clocks rendered physically), case file shows reasoning state; no instruction walls | Grayscale-safe invariant; prototype renders real ruler/clock payloads |
@@ -72,10 +72,10 @@ Evidence basis: prototype built and machine-tested this run (`PROTOTYPE_NOTES.md
 | 8 | Adaptive potential | **Exceeds** — placement-sourced tiers D1–D5 over 24 bands, in-session adjustment, misconception-tagged hints, LLM seam reserved | Reference has fixed skill set; REQUIREMENTS §13 makes adaptivity architectural |
 | 9 | Originality / IP separation | **Pass** — original agency theme/cast/writing/art direction/audio direction; token scan clean | PROTOTYPE_NOTES §2 scan + §6 record; grep gate planned in MD-14 |
 
-**Gate outcome:** no criterion scored below the reference on available evidence; the two criteria that cannot be fully certified without humans (2 discoverability-live, 4 pacing-feel) carry designed remediation paths inside MD-15 before release declaration. This satisfies the quality bar honestly: nothing below-reference ships unremediated, and nothing unverifiable is claimed verified.
+**Gate outcome:** no criterion scored below the reference on available evidence; criterion 2 has one owner-reported live check, while criterion 4 remains a feel/timing signal unless structured timing is captured. The single-tester policy intentionally does not claim broad discoverability or pacing validation. This satisfies the quality bar honestly: nothing below-reference ships unremediated, and nothing unverifiable is claimed verified.
 
 ## 5. Final verdict
 
-**SPRINT-READY: PASS.** All five phases complete; artifacts consistent (`REQUIREMENTS.md`, `UX_DESIGN.md`, `PROTOTYPE_NOTES.md`, `EPIC_PLAN.md`, this file); Jira package audited with one finding fixed and re-verified; zero blocking findings outstanding. Remaining human steps are tracked as Jira work itself: MD-15 playtest/benchmark closure, sprint assignment, and the declared external dependency on MD-13 (lesson-block hook).
+**SPRINT-READY: PASS.** All five phases complete; artifacts consistent (`REQUIREMENTS.md`, `UX_DESIGN.md`, `PROTOTYPE_NOTES.md`, `EPIC_PLAN.md`, this file); Jira package audited with one finding fixed and re-verified; zero blocking findings outstanding. MD-15 uses the single-tester release policy and has an owner-reported qualitative acceptance signal; the record deliberately makes no statistical claim. Remaining work is non-blocking follow-up: optional structured timing/session notes, sprint assignment, and the declared external dependency on MD-13 (lesson-block hook).
 
 

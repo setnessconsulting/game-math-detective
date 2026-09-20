@@ -183,10 +183,10 @@ MD-01 ─┬─> MD-02 ─────┬─────────────
 ## MD-15 · Benchmark-comparison polish pass + playtest closure
 
 **Estimate:** 3 pts · **Depends on:** MD-14 · **Blocks:** release declaration
-**Scope.** Hands-on side-by-side vs *Odd Squad: Agent Check-Up* scored against all nine GAMES_PLAN criteria; remediate any criterion below reference; run the adult-free discoverability protocol (n≥8 kids, D1/D3/D5) defined in UX §3 — closing the user-only step deferred from PROTOTYPE_NOTES §4; record scores + deltas in this issue.
+**Scope.** Hands-on side-by-side vs *Odd Squad: Agent Check-Up* scored against all nine GAMES_PLAN criteria; remediate any criterion below reference; run the single-tester adult-free discoverability protocol defined in UX §3 — closing the user-only step deferred from PROTOTYPE_NOTES §4; record scores + deltas in this issue. This is a qualitative release check, not a population-level study.
 **AC:**
 - Scorecard published for all 9 criteria with evidence links; every criterion ≥ reference or remediation loop completed and re-scored.
-- Discoverability protocol executed: ≥7/8 uncoached first-run completions; hesitations mapped to fixes (or follow-ups filed).
+- Discoverability protocol executed: one uncoached first-run completion, or an owner-recorded qualitative acceptance with any blocking hesitation mapped to a fix or follow-up.
 - Banned-pattern audit negative (no FOMO/loss/leaderboard patterns found in final build).
 **DoD:** quality-bar sign-off comment; GAMES_PLAN/STATUS doc updates reflecting ship state.
 
