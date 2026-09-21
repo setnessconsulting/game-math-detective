@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 async function solveCurrentEvidence(page: Page) {
   await page.getByTestId("inspect-station").click();
   await page.getByTestId("open-challenge").click();
+  await expect(page.getByTestId("inspection-callout")).toBeVisible();
 
   await page.getByTestId("answer-input").fill("999999");
   await page.getByTestId("submit-answer").click();
@@ -31,6 +32,7 @@ test("plays the deterministic quick case through the deduction board", async ({ 
   await expect(page.getByTestId("phaser-surface").locator("canvas")).toHaveCount(1);
   await expect(page.getByTestId("game-phase")).toHaveText("briefing");
   await expect(page.getByTestId("agency-framing")).toHaveText("Agency file · case 1 · 0 closed");
+  await expect(page.getByTestId("world-atmosphere")).toBeVisible();
 
   await page.getByRole("button", { name: "Start investigating" }).click();
   await expect(page.getByTestId("game-phase")).toHaveText("evidence");
@@ -55,6 +57,26 @@ test("plays the deterministic quick case through the deduction board", async ({ 
   await page.getByRole("dialog", { name: /Name / }).getByRole("button", { name: "Confirm accusation" }).click();
   await expect(page.getByRole("heading", { name: "Case closed" })).toBeVisible();
   await expect(page.getByTestId("agency-framing")).toHaveText("Agency file · case 1 · 1 closed");
-  await page.getByRole("button", { name: "Open case summary" }).click();
+  await expect(page.getByTestId("open-summary")).toBeVisible();
+  await expect(page.getByTestId("next-case")).toBeVisible();
+  await page.getByTestId("open-summary").click();
   await expect(page.getByRole("heading", { name: "A sharp investigation" })).toBeVisible();
+  await expect(page.getByText(/Independence drops when hints help/i)).toBeVisible();
+  await expect(page.getByTestId("summary-badges")).toBeVisible();
+  await expect(page.getByTestId("session-shelf")).toContainText("1 case closed");
+  await expect(page.getByTestId("summary-new-case")).toBeVisible();
+  await page.getByTestId("summary-new-case").click();
+  await expect(page.getByTestId("game-phase")).toHaveText("briefing");
+  await expect(page.getByTestId("agency-framing")).toHaveText("Agency file · case 2 · 1 closed");
+});
+
+test("offers a calm pause and restart without a browser reload", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByTestId("pause-case")).toBeEnabled();
+  await page.getByTestId("pause-case").click();
+  await expect(page.getByRole("dialog", { name: "Safe pause for the next detective" })).toBeVisible();
+  await page.getByTestId("restart-case").click();
+  await expect(page.getByTestId("game-phase")).toHaveText("briefing");
+  await expect(page.getByRole("button", { name: "Start investigating" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Safe pause for the next detective" })).toHaveCount(0);
 });

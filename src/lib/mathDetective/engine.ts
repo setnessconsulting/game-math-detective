@@ -517,6 +517,7 @@ export function tierRequiresLinks(tier: CaseRun["tier"]): number {
 export interface CaseSummaryModel {
   totalPoints: number;
   independenceScore: number;
+  independenceExplanation: string;
   evidenceSolved: number;
   evidenceTotal: number;
   hintsTotal: number;
@@ -550,6 +551,10 @@ export function summarizeCase(state: EngineState): CaseSummaryModel {
   const hintsTotal = slots.reduce((n, s) => n + s.hintsUsed.length, 0);
   const l4Uses = slots.reduce((n, s) => n + s.hintsUsed.filter((l) => l >= 3).length, 0);
   const l4SharePct = hintsTotal === 0 ? 0 : Math.round((l4Uses / hintsTotal) * 100);
+  const independenceExplanation =
+    hintsTotal > 0
+      ? "Independence drops when hints help. Try again without hints to raise it."
+      : "Independence shows how much of the case you solved without hints.";
 
   let coaching: string;
   if (independenceScore >= 80) {
@@ -579,6 +584,7 @@ export function summarizeCase(state: EngineState): CaseSummaryModel {
   return {
     totalPoints,
     independenceScore,
+    independenceExplanation,
     evidenceSolved,
     evidenceTotal: slots.length,
     hintsTotal,
