@@ -153,9 +153,12 @@ export function wrongAnswerFeedback(item: GeneratedEvidence, submittedValue: num
   misconceptionTag: string;
   text: string;
 } {
-  const shown = Number.isInteger(submittedValue)
-    ? String(submittedValue)
-    : submittedValue.toFixed(2);
+  const shown =
+    typeof submittedValue === "number" && Number.isFinite(submittedValue)
+      ? Number.isInteger(submittedValue)
+        ? String(submittedValue)
+        : submittedValue.toFixed(2)
+      : String(submittedValue);
   const guidance =
     FEEDBACK_GUIDANCE[item.misconceptionTag] ??
     "Look closely at the evidence and choose the operation it asks for.";
@@ -330,10 +333,10 @@ export function reduce(
     }
 
     case "REQUEST_HINT": {
-      if (!state.run) break;
+      if (!state.run || state.phase !== "evidence") break;
       const idx = state.current;
       const slot = state.slots[idx]!;
-      if (!slot || slot.itemId !== action.itemId || slot.hintsUsed.includes(action.level)) break;
+      if (!slot || slot.solved || slot.itemId !== action.itemId || slot.hintsUsed.includes(action.level)) break;
       const item = state.run.evidences[idx]!;
       const slots = state.slots.map((s, i) =>
         i === idx ? { ...s, hintsUsed: [...s.hintsUsed, action.level] } : s,
@@ -359,6 +362,9 @@ export function reduce(
       if (!state.run || state.phase !== "evidence") break;
       const idx = state.current;
       const justSolvedIdx = idx;
+      // §4/RENDERER_BOUNDARY: an item must be solved before play advances —
+      // no skipping a live evidence item (a stale timer cannot skip either).
+      if (!state.slots[idx]?.solved) break;
       if (state.wrapPending) {
         const wrapped = finishSummary({ ...state, capReached: true }, effects, now);
         return { state: wrapped, effects };
