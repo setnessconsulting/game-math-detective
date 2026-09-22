@@ -21,6 +21,7 @@ import {
   getAgencyProgress,
   type AgencyProgress,
 } from "@/lib/mathDetective/agency";
+import { clearResume } from "@/lib/mathDetective/resume";
 import type {
   CaseMode,
   DifficultyTier,
@@ -73,18 +74,74 @@ function settingVignetteFor(settingId: string): {
   mark: string;
   prop: string;
   detail: string;
+  roomCue: string;
+  inspectCopy: string;
 } {
   switch (settingId) {
     case "community-garden":
-      return { mark: "✿", prop: "SEED TRAY", detail: "Look for growing clues among plots, weather notes, and seed counts." };
+      return {
+        mark: "✿",
+        prop: "SEED TRAY",
+        detail: "Look for growing clues among plots, weather notes, and seed counts.",
+        roomCue: "Sunlit plots · weather board",
+        inspectCopy: "The garden keeps its numbers in seed trays, plot markers, and growing logs.",
+      };
     case "makers-market":
-      return { mark: "✦", prop: "MARKET STALL", detail: "Look for bright displays, receipts, and clever maker tools." };
+      return {
+        mark: "✦",
+        prop: "MARKET STALL",
+        detail: "Look for bright displays, receipts, and clever maker tools.",
+        roomCue: "Canopy stalls · receipt rail",
+        inspectCopy: "The market is full of price tags, maker tools, and bright clues waiting to be counted.",
+      };
     case "sky-observatory":
-      return { mark: "✧", prop: "STAR MAP", detail: "Look for quiet signals, sky clocks, and careful observations." };
+      return {
+        mark: "✧",
+        prop: "STAR MAP",
+        detail: "Look for quiet signals, sky clocks, and careful observations.",
+        roomCue: "Night dome · signal desk",
+        inspectCopy: "The observatory records careful readings, star positions, and times between signals.",
+      };
     case "library-archive":
-      return { mark: "▤", prop: "ARCHIVE SHELF", detail: "Look for number trails hidden in records, maps, and catalog notes." };
+      return {
+        mark: "▤",
+        prop: "ARCHIVE SHELF",
+        detail: "Look for number trails hidden in records, maps, and catalog notes.",
+        roomCue: "Quiet stacks · catalog desk",
+        inspectCopy: "The archive hides its trail in catalog cards, maps, and carefully ordered records.",
+      };
     default:
-      return { mark: "⌕", prop: "CASE FILE", detail: "Look closely. Every object can carry a useful clue." };
+      return {
+        mark: "⌕",
+        prop: "CASE FILE",
+        detail: "Look closely. Every object can carry a useful clue.",
+        roomCue: "Case desk · active file",
+        inspectCopy: "Look closely. Every object can carry a useful clue.",
+      };
+  }
+}
+
+function transitionCopyFor(kind: SceneModel["world"]["transition"]["kind"]): string {
+  switch (kind) {
+    case "caseEntry":
+      return "The room is ready for your first look.";
+    case "stationFocus":
+      return "A useful object is waiting to be inspected.";
+    case "stationComplete":
+      return "The evidence is solved and ready to file.";
+    case "clueDiscovery":
+      return "A new clue is moving onto the board.";
+    case "suspectUpdate":
+      return "The people in the file have been narrowed down.";
+    case "wrongAccusationRecovery":
+      return "The case stays open. Follow the evidence again.";
+    case "verdict":
+      return "The evidence has reached a verdict.";
+    case "summary":
+      return "This case file is sealed for the session.";
+    case "none":
+    default:
+      return "The case map is following your investigation.";
   }
 }
 
@@ -229,6 +286,7 @@ export default function MathDetective() {
   const [caseMode, setCaseMode] = useState<CaseMode>("mini");
   const [rankSelection, setRankSelection] = useState<RankSelection>("auto");
   const [caseSeed, setCaseSeed] = useState(42);
+  const [restartNonce, setRestartNonce] = useState(0);
   const selectedTier = rankSelection === "auto" ? AUTO_TIER : rankSelection;
   const run = useMemo(() => generateCase({ seed: caseSeed, tier: selectedTier, mode: caseMode }), [caseMode, caseSeed, selectedTier]);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>(() =>
@@ -248,12 +306,15 @@ export default function MathDetective() {
   const [reducedMotion, setReducedMotion] = useState(false);
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [pauseOpen, setPauseOpen] = useState(false);
   const [notice, setNotice] = useState("Preparing the case file…");
   const hostRef = useRef<HostAdapter | null>(null);
   const phaserParentRef = useRef<HTMLDivElement>(null);
   const answerInputRef = useRef<HTMLInputElement>(null);
   const beginRef = useRef<HTMLButtonElement>(null);
   const revealRef = useRef<HTMLButtonElement>(null);
+  const pauseResumeRef = useRef<HTMLButtonElement>(null);
+  const pauseDialogRef = useRef<HTMLElement>(null);
   const soundEnabledRef = useRef(soundEnabled);
   const presentationRef = useRef({ layoutMode, reducedMotion, captionsEnabled });
   const agencyStartedCaseRef = useRef<string | null>(null);
@@ -323,13 +384,15 @@ export default function MathDetective() {
       })
       .catch((error: unknown) => setNotice(error instanceof Error ? `The case file could not open: ${error.message}` : "The case file could not open."));
 
+    setPauseOpen(false);
+
     return () => {
       disposed = true;
       hostRef.current?.destroy();
       hostRef.current = null;
       setHostReady(false);
     };
-  }, [run]);
+  }, [run, restartNonce]);
 
   const currentEvidence: GeneratedEvidence | undefined = run.evidences.find((evidence) => evidence.id === scene.clue.evidenceId);
   const currentStation = scene.stations.find((station) => station.evidenceId === scene.clue.evidenceId);
@@ -383,6 +446,42 @@ export default function MathDetective() {
     if (!Number.isFinite(value)) { setNotice("Enter a number before checking the evidence."); return; }
     handleIntent({ t: "submitAnswer", evidenceId: currentEvidence.id, value });
   };
+
+  const startNewCase = () => {
+    clearResume();
+    setPauseOpen(false);
+    setCaseSeed((seed) => seed + 1);
+  };
+
+  const restartCurrentCase = () => {
+    clearResume();
+    setPauseOpen(false);
+    setRestartNonce((nonce) => nonce + 1);
+  };
+
+  useEffect(() => {
+    if (!pauseOpen) return;
+    pauseResumeRef.current?.focus();
+    const handlePauseKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPauseOpen(false);
+      if (event.key !== "Tab") return;
+      const dialog = pauseDialogRef.current;
+      if (!dialog) return;
+      const actions = [...dialog.querySelectorAll<HTMLButtonElement>("button:not(:disabled)")];
+      if (actions.length === 0) return;
+      const first = actions[0];
+      const last = actions.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", handlePauseKeyDown);
+    return () => window.removeEventListener("keydown", handlePauseKeyDown);
+  }, [pauseOpen]);
 
   const renderBriefing = () => {
     const settingVignette = settingVignetteFor(scene.world.setting.id);
@@ -438,7 +537,8 @@ export default function MathDetective() {
       return <section aria-labelledby="earned-title" className="md-earned-card"><span className="md-result-glyph" aria-hidden="true">★</span><div><div className="md-section-kicker">Case file updated</div><h2 id="earned-title">Clue added</h2><p><strong>{currentEvidence.constraint.chip}</strong></p><p className="md-muted">{currentEvidence.constraint.sentence}</p><button type="button" data-testid="next-station" onClick={() => handleIntent({ t: "continue" })}>{last ? "Open deduction board" : "Find next evidence"}</button></div></section>;
     }
     if (!stationReady) return <section aria-labelledby="station-select-title" className="md-station-select"><div className="md-section-kicker">{scene.world.setting.label}</div><h2 id="station-select-title">Evidence station</h2><p className="md-goal-copy">Choose the glowing station, inspect it, then open its math challenge.</p><div className="md-station-card md-station-card-active"><span className="md-station-icon" aria-hidden="true">{stationIconFor(currentStation)}</span><div><strong>{stationLabel(currentStation)}</strong><span>{currentEvidence.goal}</span></div><button type="button" data-testid="inspect-station" onClick={() => { if (handleIntent({ t: "enterStation", evidenceId: currentEvidence.id })) setStationReady(true); }}>Inspect station</button></div><div className="md-progress-strip" role="group" aria-label={`Evidence progress ${(currentStation?.index ?? 0) + 1} of ${scene.stations.length}`}>{scene.stations.map((station) => <span className={station.status === "completed" ? "md-progress-dot md-progress-dot-done" : station.status === "active" ? "md-progress-dot md-progress-dot-current" : "md-progress-dot"} key={station.evidenceId} />)}</div></section>;
-    return <section aria-labelledby="evidence-title" className="md-challenge-section"><div className="md-section-kicker">{stationLabel(currentStation)}</div><h2 id="evidence-title">{currentEvidence.goal}</h2><p className="md-muted">{scene.narrative?.cluePhrases[currentEvidence.id]?.text}</p><div className="md-presentation-frame">{renderPresentation(currentEvidence.presentation)}</div>{scene.overlay === "challenge" ? <div className="md-challenge-card"><div className="md-answer-row"><label htmlFor="answer-input">Your answer ({currentEvidence.answer.unit})</label><input id="answer-input" aria-label="Numeric answer" data-testid="answer-input" inputMode="decimal" ref={answerInputRef} type="number" step="any" value={answer} onChange={(event) => setAnswer(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") submitAnswer(); }} /><button type="button" data-testid="submit-answer" onClick={submitAnswer}>Check evidence</button></div>{feedback?.itemId === currentEvidence.id && !feedback.correct ? <div className="md-feedback md-feedback-warn" role="status"><strong>Check the evidence · {readableTag(feedback.misconceptionTag)}</strong><p>{feedback.text}</p></div> : null}{renderHintArea()}<button type="button" className="md-button-quiet md-close-button" onClick={() => handleIntent({ t: "closeChallenge" })}>Back to station</button></div> : <div className="md-open-challenge"><p>Use the evidence object, then solve the semantic challenge.</p><button type="button" data-testid="open-challenge" onClick={() => handleIntent({ t: "openChallenge", evidenceId: currentEvidence.id })}>Open math challenge</button></div>}</section>;
+    const settingVignette = settingVignetteFor(scene.world.setting.id);
+    return <section aria-labelledby="evidence-title" className="md-challenge-section"><div className="md-section-kicker">{stationLabel(currentStation)}</div><h2 id="evidence-title">{currentEvidence.goal}</h2><p className="md-muted">{scene.narrative?.cluePhrases[currentEvidence.id]?.text}</p><div className="md-inspection-callout" data-testid="inspection-callout"><span className="md-inspection-icon" aria-hidden="true">{stationIconFor(currentStation)}</span><div><div className="md-section-kicker">Object inspected · {settingVignette.prop.toLowerCase()}</div><strong>{stationLabel(currentStation)}</strong><p>{settingVignette.inspectCopy}</p></div><span className="md-inspection-state">READY</span></div><div className="md-presentation-frame">{renderPresentation(currentEvidence.presentation)}</div>{scene.overlay === "challenge" ? <div className="md-challenge-card"><div className="md-answer-row"><label htmlFor="answer-input">Your answer ({currentEvidence.answer.unit})</label><input id="answer-input" aria-label="Numeric answer" data-testid="answer-input" inputMode="decimal" ref={answerInputRef} type="number" step="any" value={answer} onChange={(event) => setAnswer(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") submitAnswer(); }} /><button type="button" data-testid="submit-answer" onClick={submitAnswer}>Check evidence</button></div>{feedback?.itemId === currentEvidence.id && !feedback.correct ? <div className="md-feedback md-feedback-warn" role="status"><strong>Check the evidence · {readableTag(feedback.misconceptionTag)}</strong><p>{feedback.text}</p></div> : null}{renderHintArea()}<button type="button" className="md-button-quiet md-close-button" onClick={() => handleIntent({ t: "closeChallenge" })}>Back to station</button></div> : <div className="md-open-challenge"><p>Use the evidence object, then solve the semantic challenge.</p><button type="button" data-testid="open-challenge" onClick={() => handleIntent({ t: "openChallenge", evidenceId: currentEvidence.id })}>Open math challenge</button></div>}</section>;
   };
 
   const renderCheckpoint = () => {
@@ -453,12 +553,21 @@ export default function MathDetective() {
     const lastAccusation = hostRef.current?.getState().accusations.at(-1);
     const closed = scene.outcome === "closed";
     if (scene.casePhase === "guided") return <section aria-labelledby="guided-title" className="md-verdict-card md-verdict-guided"><span className="md-result-glyph" aria-hidden="true">↺</span><div><div className="md-section-kicker">Guided recovery</div><h2 id="guided-title">Let’s follow the evidence</h2><p>{scene.narrative?.verdict.recovery.text ?? "We can review the clue links together. The case stays open, and there is no penalty for trying again."}</p><button type="button" onClick={() => handleIntent({ t: "continue" })}>Finish guided case</button></div></section>;
-    return <section aria-labelledby="verdict-title" className={`md-verdict-card ${closed ? "md-verdict-closed" : "md-verdict-wrong"}`}><span className="md-result-glyph" aria-hidden="true">{closed ? "★" : "↺"}</span><div><div className="md-section-kicker">Verdict</div><h2 id="verdict-title">{closed ? "Case closed" : "Check the evidence again"}</h2><p>{closed ? scene.narrative?.verdict.closed.text : scene.narrative?.verdict.recovery.text}</p>{!closed && lastAccusation?.contradictedBy.length ? <div className="md-contradiction"><strong>Contradicting clue</strong>{lastAccusation.contradictedBy.map((id) => <p key={id}>{scene.deduction.chips.find((chip) => chip.id === id)?.sentence}</p>)}</div> : null}<button type="button" onClick={() => handleIntent({ t: "continue" })}>{closed ? "Open case summary" : "Follow the evidence again"}</button></div>{closed ? <div className="md-case-closed-stamp" aria-hidden="true">CASE<br />CLOSED</div> : null}</section>;
+    return <section aria-labelledby="verdict-title" className={`md-verdict-card ${closed ? "md-verdict-closed" : "md-verdict-wrong"}`}><span className="md-result-glyph" aria-hidden="true">{closed ? "★" : "↺"}</span><div><div className="md-section-kicker">Verdict</div><h2 id="verdict-title">{closed ? "Case closed" : "Check the evidence again"}</h2><p>{closed ? scene.narrative?.verdict.closed.text : scene.narrative?.verdict.recovery.text}</p>{!closed && lastAccusation?.contradictedBy.length ? <div className="md-contradiction"><strong>Contradicting clue</strong>{lastAccusation.contradictedBy.map((id) => <p key={id}>{scene.deduction.chips.find((chip) => chip.id === id)?.sentence}</p>)}</div> : null}{closed ? <div className="md-actions"><button type="button" data-testid="open-summary" onClick={() => handleIntent({ t: "continue" })}>Case summary</button><button type="button" className="md-button-quiet" data-testid="next-case" onClick={startNewCase}>Next case / New case</button></div> : <button type="button" onClick={() => handleIntent({ t: "continue" })}>Follow the evidence again</button>}</div>{closed ? <div className="md-case-closed-stamp" aria-hidden="true">CASE<br />CLOSED</div> : null}</section>;
   };
 
   const renderSummary = () => {
     const summary = hostRef.current ? summarizeCase(hostRef.current.getState()) : null;
-    return <section aria-labelledby="summary-title" className="md-summary-card"><div className="md-summary-seal" aria-hidden="true">FILE<br />SEALED</div><div className="md-section-kicker">Case file complete</div><h2 id="summary-title">A sharp investigation</h2><p className="md-independence"><strong>{summary?.independenceScore ?? 0}%</strong><span>independence score</span></p><p>{summary?.coaching}</p><div className="md-summary-grid"><div><strong>{summary?.evidenceSolved ?? 0}/{summary?.evidenceTotal ?? 0}</strong><span>evidence solved</span></div><div><strong>{summary?.totalPoints ?? 0}</strong><span>points earned</span></div><div><strong>{summary?.hintsTotal ?? 0}</strong><span>hints used</span></div></div><div className="md-chip-strip">{summary?.skills.map((skill) => <span className="md-chip" key={skill}>{skill}</span>)}</div><p className="md-muted">{summary?.parentSentence}</p><button type="button" onClick={() => { setCaseSeed((seed) => seed + 1); setNotice("A fresh case file is ready."); }}>Play another case</button></section>;
+    const settingBadges = agencyProgress.settingsSeen.map((settingId) => {
+      const vignette = settingVignetteFor(settingId);
+      return <span className="md-shelf-sticker" key={settingId} title={vignette.prop}><span aria-hidden="true">{vignette.mark}</span>{vignette.prop.toLowerCase()}</span>;
+    });
+    return <section aria-labelledby="summary-title" className="md-summary-card"><div className="md-summary-seal" aria-hidden="true">FILE<br />SEALED</div><div className="md-section-kicker">Case file complete</div><h2 id="summary-title">A sharp investigation</h2><p className="md-independence"><strong>{summary?.independenceScore ?? 0}%</strong><span>independence score</span></p><p className="md-independence-explanation">{summary?.independenceExplanation}</p><p>{summary?.coaching}</p><div className="md-summary-grid"><div><strong>{summary?.evidenceSolved ?? 0}/{summary?.evidenceTotal ?? 0}</strong><span>evidence solved</span></div><div><strong>{summary?.totalPoints ?? 0}</strong><span>points earned</span></div><div><strong>{summary?.hintsTotal ?? 0}</strong><span>hints used</span></div></div>{summary?.badges.length ? <div className="md-badge-strip" data-testid="summary-badges" role="group" aria-label="Case badges">{summary.badges.map((badge) => <span className="md-badge" key={badge}>{badge}</span>)}</div> : null}<div className="md-chip-strip">{summary?.skills.map((skill) => <span className="md-chip" key={skill}>{skill}</span>)}</div><p className="md-muted">{summary?.parentSentence}</p><div className="md-session-shelf" data-testid="session-shelf"><div><div className="md-section-kicker">Session detective desk</div><strong>{agencyProgress.casesClosed} case{agencyProgress.casesClosed === 1 ? "" : "s"} closed</strong></div><div className="md-shelf-stickers" aria-label={`${agencyProgress.settingsSeen.length} setting${agencyProgress.settingsSeen.length === 1 ? "" : "s"} visited`}>{settingBadges.length ? settingBadges : <span className="md-muted">Your setting stickers will appear here.</span>}</div></div><p className="md-session-note">This case file is session-only. Refreshing starts a new file.</p><div className="md-actions"><button type="button" data-testid="summary-new-case" onClick={startNewCase}>Start a new case</button><button type="button" className="md-button-quiet" onClick={() => setPauseOpen(true)}>Pass to the next detective</button></div></section>;
+  };
+
+  const renderPause = () => {
+    if (!pauseOpen) return null;
+    return <div className="md-modal-backdrop"><section ref={pauseDialogRef} className="md-pause-dialog" role="dialog" aria-modal="true" aria-labelledby="pause-title" aria-describedby="pause-description"><div className="md-section-kicker">Case paused</div><h2 id="pause-title">Safe pause for the next detective</h2><p id="pause-description">Your case stays in this browser session. Nothing is saved online, and you can return when you are ready.</p><div className="md-actions"><button type="button" ref={pauseResumeRef} data-testid="resume-case" onClick={() => setPauseOpen(false)}>Resume case</button><button type="button" data-testid="restart-case" onClick={restartCurrentCase}>Restart this case</button><button type="button" className="md-button-quiet" data-testid="pause-new-case" onClick={startNewCase}>Start a new case</button></div></section></div>;
   };
 
   const renderPhase = () => {
@@ -470,5 +579,6 @@ export default function MathDetective() {
     return renderSummary();
   };
 
-  return <main className={`md-shell ${reducedMotion ? "md-reduced-motion" : ""}`} data-captions={captionsEnabled ? "on" : "off"}><header className="md-header"><div className="md-header-topline"><p className="md-eyebrow">MATH DETECTIVE · CASE DESK</p><div className="md-settings" role="group" aria-label="Presentation settings"><button type="button" aria-pressed={reducedMotion} onClick={() => setReducedMotion((value) => !value)}>{reducedMotion ? "Motion: reduced" : "Motion: full"}</button><button type="button" aria-pressed={captionsEnabled} onClick={() => setCaptionsEnabled((value) => !value)}>{captionsEnabled ? "Captions: on" : "Captions: off"}</button><button type="button" aria-pressed={soundEnabled} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? "Sound: on" : "Sound: off"}</button></div></div><h1>Math Detective</h1><p className="md-lede">{run.title}. Follow the clues, solve the math, and crack the case.</p><p className="md-muted" data-testid="agency-framing">{agencyFraming(agencyProgress)}</p></header><div className="md-case-layout"><section className="md-panel md-case-panel" aria-labelledby="case-title"><div className="md-case-bar"><span className="md-phase" data-testid="game-phase">{scene.casePhase}</span><span className="md-tier-badge">{TIER_META[run.tier].rank} · {caseMode === "mini" ? "Quick Case" : "Full Case"}</span></div><h2 id="case-title">{run.title}</h2>{renderPhase()}<p className="md-notice" role="status" aria-live="polite">{captionsEnabled ? notice : ""}</p></section><aside className="md-panel md-world-panel" data-phase={scene.casePhase} data-setting={scene.world.setting.id} aria-labelledby="phaser-title"><div className="md-world-heading"><div><div className="md-section-kicker">Case file map</div><h2 id="phaser-title">The investigation board</h2></div><span className="md-live-dot" role="img" aria-label="Case map active" /></div><p className="md-muted">Your math changes the case file here. Filed clues and remaining leads stay visible as you investigate.</p><div ref={phaserParentRef} className="md-phaser" data-testid="phaser-surface" /><div className="md-world-legend" role="group" aria-label="Case map legend"><span><i className="md-legend-dot md-legend-current" />next</span><span><i className="md-legend-dot md-legend-done" />filed</span><span><i className="md-legend-dot md-legend-open" />up ahead</span></div></aside></div></main>;
+  const worldVignette = settingVignetteFor(scene.world.setting.id);
+  return <main className={`md-shell ${reducedMotion ? "md-reduced-motion" : ""}`} data-captions={captionsEnabled ? "on" : "off"}><header className="md-header"><div className="md-header-topline"><p className="md-eyebrow">MATH DETECTIVE · CASE DESK</p><div className="md-settings" role="group" aria-label="Presentation settings"><button type="button" aria-pressed={reducedMotion} onClick={() => setReducedMotion((value) => !value)}>{reducedMotion ? "Motion: reduced" : "Motion: full"}</button><button type="button" aria-pressed={captionsEnabled} onClick={() => setCaptionsEnabled((value) => !value)}>{captionsEnabled ? "Captions: on" : "Captions: off"}</button><button type="button" aria-pressed={soundEnabled} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? "Sound: on" : "Sound: off"}</button>{scene.casePhase !== "summary" ? <button type="button" data-testid="pause-case" onClick={() => setPauseOpen(true)} disabled={!hostReady}>Pause / handoff</button> : null}</div></div><h1>Math Detective</h1><p className="md-lede">{run.title}. Follow the clues, solve the math, and crack the case.</p><p className="md-muted" data-testid="agency-framing">{agencyFraming(agencyProgress)}</p></header><div className="md-case-layout"><section className="md-panel md-case-panel" data-phase={scene.casePhase} data-setting={scene.world.setting.id} aria-labelledby="case-title"><div className="md-case-bar"><span className="md-phase" data-testid="game-phase">{scene.casePhase}</span><span className="md-tier-badge">{TIER_META[run.tier].rank} · {caseMode === "mini" ? "Quick Case" : "Full Case"}</span></div><h2 id="case-title">{run.title}</h2>{renderPhase()}<p className="md-notice" role="status" aria-live="polite">{captionsEnabled ? notice : ""}</p></section><aside className="md-panel md-world-panel" data-phase={scene.casePhase} data-setting={scene.world.setting.id} data-transition={scene.world.transition.kind} aria-labelledby="phaser-title"><div className="md-world-heading"><div><div className="md-section-kicker">Case file map</div><h2 id="phaser-title">The investigation board</h2></div><span className="md-live-dot" role="img" aria-label="Case map active" /></div><div className={`md-world-atmosphere md-world-atmosphere-${scene.world.setting.id}`} data-testid="world-atmosphere"><span className="md-world-atmosphere-mark" aria-hidden="true">{worldVignette.mark}</span><div><div className="md-section-kicker">{worldVignette.roomCue}</div><strong>{scene.world.setting.label}</strong><p>{transitionCopyFor(scene.world.transition.kind)}</p></div><span className="md-world-atmosphere-state">{scene.world.environmentalFeedback.label}</span></div><p className="md-muted">Your math changes the case file here. Filed clues and remaining leads stay visible as you investigate.</p><div ref={phaserParentRef} className="md-phaser" data-testid="phaser-surface" /><div className="md-world-legend" role="group" aria-label="Case map legend"><span><i className="md-legend-dot md-legend-current" />next</span><span><i className="md-legend-dot md-legend-done" />filed</span><span><i className="md-legend-dot md-legend-open" />up ahead</span></div></aside></div>{renderPause()}</main>;
 }

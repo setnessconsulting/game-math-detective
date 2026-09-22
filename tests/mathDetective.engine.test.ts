@@ -269,6 +269,7 @@ describe("mathDetective summary model", () => {
     ];
     const high = summarizeCase({ ...base, slots, accusations: [{ suspectId: "x", correct: true, contradictedBy: [] }] });
     expect(high.independenceScore).toBe(100);
+    expect(high.independenceExplanation).toMatch(/without hints/i);
     expect(high.coaching).toMatch(/Sharp detective work/);
     expect(high.badges.join(" ")).toMatch(/Cracked It/);
     expect(high.badges.join(" ")).toMatch(/Sharp Eye/);
@@ -282,6 +283,7 @@ describe("mathDetective summary model", () => {
       accusations: [],
     });
     expect(revealHeavy.l4SharePct).toBeGreaterThan(60);
+    expect(revealHeavy.independenceExplanation).toMatch(/hints help/i);
     expect(revealHeavy.parentSentence).toMatch(/step-by-step reveals/i);
     expect(revealHeavy.coaching).not.toMatch(/you lost|hurry/i);
   });

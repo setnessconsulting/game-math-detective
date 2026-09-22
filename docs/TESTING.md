@@ -10,3 +10,17 @@ The repository has four complementary evidence layers.
 The real render test is not a jsdom alias, mocked Phaser object, or compile-only import. It fails if Phaser falls back away from the expected WebGL renderer or the scene never becomes active.
 
 Run npm run verify for the aggregate pull-request check. CI installs from package-lock.json and requires no credentials.
+
+## Math Detective playtest enhancement pass (2026-09-21)
+
+The post-playtest shell pass is covered by the same repository gates and adds explicit checks for:
+
+- pause / handoff, restart, and start-a-new-case flows without a browser reload;
+- a plain-language independence explanation, earned case badges, and a session-only setting sticker shelf;
+- setting atmosphere, transition copy, and an inspected-object callout around each evidence challenge;
+- keyboard focus containment for the pause dialog;
+- 320px phone layout without horizontal overflow or unintended nested play-panel scrolling;
+- 200% text scaling while the pause controls remain visible and pointer-targetable.
+
+The authoritative commands are `npm run test:a11y`, `npm run test:phaser-render`, and
+`npm run test:e2e`; `npm run verify` remains the aggregate release gate.
